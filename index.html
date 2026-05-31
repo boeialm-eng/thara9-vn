@@ -13,8 +13,10 @@
   #vn{position:relative;max-width:540px;height:100vh;margin:0 auto;overflow:hidden;}
 
   /* BACKGROUND */
-  #bg{position:absolute;inset:0;transition:background .6s ease;}
+  #bg{position:absolute;inset:0;transition:background .6s ease;overflow:hidden;}
   #bgArt{position:absolute;inset:0;}
+  #eventArt{position:absolute;inset:0;z-index:1;opacity:0;transition:opacity 1.2s ease;pointer-events:none;}
+  #eventArt.show{opacity:1;}
   #bg.alert::after{content:"";position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 40%,transparent 40%,rgba(255,40,60,.22));
     animation:pulse 1.3s infinite;pointer-events:none;}
   @keyframes pulse{50%{opacity:.4}}
@@ -83,7 +85,34 @@
   .vnote{font-size:12px;background:rgba(70,216,255,.08);border:1px solid #2a4668;border-radius:10px;padding:10px;margin-top:10px;line-height:1.55;}
   .fnote{font-size:10.5px;color:#7fa8c9;line-height:1.6;margin-top:12px;}
   #char img.sprite{height:100%;width:auto;object-fit:contain;border-radius:12px;
-    box-shadow:0 0 0 1px rgba(70,216,255,.12),0 12px 32px rgba(0,0,0,.6);}
+    box-shadow:0 0 0 1px rgba(70,216,255,.12),0 12px 32px rgba(0,0,0,.6);
+    animation:floatIdle 4s ease-in-out infinite;}
+
+  /* ============================ MOTION / ANIMATION ========================= */
+  /* Ken Burns — ซูมเข้าช้า ๆ พร้อมเลื่อนเล็กน้อย ไม่ให้ขอบขาว */
+  @keyframes kenBurns{
+    from{transform:scale(1.03) translate(0,0)}
+    to  {transform:scale(1.08) translate(-10px,-6px)}
+  }
+  @keyframes kenBurns2{
+    from{transform:scale(1.08) translate(9px,5px)}
+    to  {transform:scale(1.03) translate(0,0)}
+  }
+  /* ใส่ ken burns บน img ภายใน #bgArt และ #eventArt */
+  #bgArt img{animation:kenBurns 28s ease-in-out infinite alternate;will-change:transform;}
+  #eventArt img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+    animation:kenBurns2 33s ease-in-out infinite alternate-reverse;will-change:transform;}
+
+  /* Float idle — ตัวละครลอยหายใจเบา ๆ */
+  @keyframes floatIdle{
+    0%,100%{transform:translateY(0px)}
+    50%    {transform:translateY(-5px)}
+  }
+
+  /* ปิดทั้งหมดเมื่อ JS toggle (.motion-reduced) หรือ OS preference */
+  #vn.motion-reduced #bgArt img,
+  #vn.motion-reduced #eventArt img,
+  #vn.motion-reduced #char img.sprite{animation:none!important;transform:none!important}
 
   /* ============================ EFFECTS ==================================== */
   /* shake — translate เล็กน้อย 0.5s แล้วหยุด */
@@ -139,12 +168,13 @@
   @media(prefers-reduced-motion:reduce){
     #vn.shake,#fxOverlay.flicker,#bgArt.glitch,#dimOverlay.active{animation:none!important}
     #bg.alert::after{animation:none!important;opacity:.2!important}
+    #bgArt img,#eventArt img,#char img.sprite{animation:none!important;transform:none!important}
   }
 </style>
 </head>
 <body>
 <div id="vn">
-  <div id="bg"><div id="bgArt"></div></div>
+  <div id="bg"><div id="bgArt"></div><div id="eventArt"></div></div>
   <div class="vig"></div><div class="scan"></div>
   <div id="fxOverlay"></div>
   <div id="crackOverlay"></div>
@@ -409,6 +439,7 @@ function play(arr,done){ exitCalmMode(); beats=arr;bi=0;afterBeats=done; $("choi
 /* ============================ CHOICES ==================================== */
 function ask(prompt,list,onPick){
   enterCalmMode(); // จอสงบก่อนเลือก — ห้ามกระพริบ/สั่นขณะชั่งใจ
+  hideEventImage(); // ซ่อนภาพเหตุการณ์ตอนโชว์ตัวเลือก
   $("dlgWrap").style.display='none';
   const box=$("choices"); box.innerHTML=`<div class="ask">${prompt}</div>`;
   list.slice().sort(()=>Math.random()-.5).forEach(ch=>{   // สลับลำดับ กัน position bias
@@ -482,12 +513,29 @@ function updateAtmosphere(){
   $("crackOverlay").classList.toggle('active', S.hull < 40);
   $("dimOverlay").classList.toggle('active', S.power < 35);
 }
+
+// ── Event images — ภาพเหตุการณ์กำลังเกิด (ตอนเล่าเรื่อง ก่อนเลือก) ────────
+const EVENT_IMGS=['impact','breach','fire','nav','lab','medbay','comms','conflict','storage','reactor','dock','ending'];
+function showEventImage(crisisIdx){
+  const id=EVENT_IMGS[crisisIdx]; if(!id) return;
+  const art=$("eventArt");
+  art.innerHTML=`<img src="assets/event_${id}.png" onerror="this.parentNode.innerHTML=''" alt="">`;
+  requestAnimationFrame(()=>art.classList.add('show')); // trigger transition
+}
+function hideEventImage(){
+  const art=$("eventArt");
+  art.classList.remove('show');
+  setTimeout(()=>{ if(!art.classList.contains('show')) art.innerHTML=''; },1300);
+}
+
+// init motion-reduced class ตามค่าเริ่มต้น OS
+if(reducedMotion) $("vn").classList.add('motion-reduced');
 $("fxToggle").onclick=()=>{
   reducedMotion=!reducedMotion;
   $("fxToggle").classList.toggle('off',reducedMotion);
   $("fxToggle").title=reducedMotion?'เปิดเอฟเฟกต์':'ลดเอฟเฟกต์';
+  $("vn").classList.toggle('motion-reduced',reducedMotion); // ปิด/เปิด Ken Burns + float
   if(reducedMotion){
-    // ล้างทันที
     $("vn").classList.remove('shake');
     $("fxOverlay").classList.remove('flicker');
     $("bgArt").classList.remove('glitch');
@@ -704,6 +752,7 @@ $("startBtn").onclick=()=>{ initAudio(); if(actx&&actx.state==='suspended')actx.
 
 function runCrisis(i){
   if(i>=CRISES.length){ ending(); return; }
+  showEventImage(i); // แสดงภาพเหตุการณ์ก่อนเล่าเรื่อง
   const prompt = i===9 ? 'พลังงานใกล้หมด เธอจะลงแรงกับส่วนไหน?' : 'เธอจะทำอะไร?';
   play(CRISES[i].intro(S), ()=> ask(prompt, CRISES[i].choices(), ()=> afterChoice(i)));
 }
