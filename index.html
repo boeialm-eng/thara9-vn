@@ -84,17 +84,77 @@
   .fnote{font-size:10.5px;color:#7fa8c9;line-height:1.6;margin-top:12px;}
   #char img.sprite{height:100%;width:auto;object-fit:contain;border-radius:12px;
     box-shadow:0 0 0 1px rgba(70,216,255,.12),0 12px 32px rgba(0,0,0,.6);}
+
+  /* ============================ EFFECTS ==================================== */
+  /* shake — translate เล็กน้อย 0.5s แล้วหยุด */
+  @keyframes shakeFx{
+    0%,100%{transform:translate(0,0)}
+    12%{transform:translate(-3px,2px)}25%{transform:translate(3px,-2px)}
+    40%{transform:translate(-2px,3px)}55%{transform:translate(2px,-1px)}
+    70%{transform:translate(-1px,2px)}85%{transform:translate(1px,-1px)}
+  }
+  #vn.shake{animation:shakeFx .5s ease forwards}
+
+  /* flicker — กระพริบ 3 ครั้งใน 1.2s (<3Hz ปลอดภัย) แล้วหยุด */
+  @keyframes flickerFx{
+    0%,100%{opacity:0}
+    5%{opacity:.58}13%{opacity:0}
+    38%{opacity:.48}45%{opacity:0}
+    68%{opacity:.36}73%{opacity:0}
+  }
+  #fxOverlay{position:absolute;inset:0;z-index:28;pointer-events:none;background:#000;opacity:0}
+  #fxOverlay.flicker{animation:flickerFx 1.2s ease forwards}
+
+  /* glitch — ภาพเลื่อน/ซ้อนสี 0.45s แล้วหยุด */
+  @keyframes glitchFx{
+    0%,100%{transform:translateX(0);filter:none}
+    12%{transform:translateX(-4px);filter:saturate(3) hue-rotate(55deg) brightness(1.1)}
+    24%{transform:translateX(4px);filter:saturate(3) hue-rotate(-55deg)}
+    36%{transform:translateX(-2px);filter:brightness(.8) saturate(2)}
+    48%{transform:translateX(0);filter:none}
+  }
+  #bgArt.glitch{animation:glitchFx .45s ease forwards}
+
+  /* crack overlay — vignette แดง เมื่อ hull ต่ำ */
+  #crackOverlay{position:absolute;inset:0;z-index:7;pointer-events:none;opacity:0;transition:opacity 2s;
+    box-shadow:inset 0 0 80px rgba(255,40,60,.55),inset 0 0 40px rgba(255,20,30,.3)}
+  #crackOverlay.active{opacity:1}
+
+  /* dim overlay — หรี่จอ เมื่อ power ต่ำ (กระพริบช้า ~10s ต่อรอบ) */
+  @keyframes powerDimFx{
+    0%,78%,100%{opacity:.36}81%{opacity:.54}87%{opacity:.22}93%{opacity:.44}
+  }
+  #dimOverlay{position:absolute;inset:0;z-index:6;pointer-events:none;background:#000;opacity:0;transition:opacity 2s}
+  #dimOverlay.active{opacity:.38;animation:powerDimFx 10s 1s infinite}
+
+  /* calm-mode — ตอนโชว์ตัวเลือก: ไฟแดงนิ่ง ไม่กระพริบ */
+  #bg.alert.calm-mode::after{animation:none!important;opacity:.13!important}
+
+  /* reduce-motion toggle button */
+  #fxToggle{border:1px solid #1f3354;background:transparent;color:#46d8ff;border-radius:7px;
+    padding:3px 8px;font-family:'Share Tech Mono';font-size:10px;cursor:pointer;transition:color .2s,border-color .2s}
+  #fxToggle.off{color:#ff5d70;border-color:rgba(255,93,112,.4)}
+
+  /* OS-level prefers-reduced-motion: ปิดทุก animation อัตโนมัติ */
+  @media(prefers-reduced-motion:reduce){
+    #vn.shake,#fxOverlay.flicker,#bgArt.glitch,#dimOverlay.active{animation:none!important}
+    #bg.alert::after{animation:none!important;opacity:.2!important}
+  }
 </style>
 </head>
 <body>
 <div id="vn">
   <div id="bg"><div id="bgArt"></div></div>
   <div class="vig"></div><div class="scan"></div>
+  <div id="fxOverlay"></div>
+  <div id="crackOverlay"></div>
+  <div id="dimOverlay"></div>
 
   <div id="hud">
     <div class="gauge"><div class="lab">HULL</div><div class="bar"><div class="fill" id="g_hull" style="background:#ff7a4d"></div></div></div>
     <div class="gauge"><div class="lab">PWR</div><div class="bar"><div class="fill" id="g_power" style="background:#46d8ff"></div></div></div>
     <span id="nutStat">นัท: ปลอดภัย</span>
+    <button id="fxToggle" title="ลดเอฟเฟกต์">✦</button>
     <button id="mute">♪</button>
   </div>
 
@@ -328,6 +388,7 @@ function setChar(who,expr){
 }
 function renderBeat(b){
   if(b.bg!==undefined||b.alert!==undefined) setBG(b.bg,b.alert);
+  triggerFX(b);
   const c=CH[b.who]||CH.narr;
   $("namebox").className=c.cls; $("namebox").textContent=c.name;
   setChar(b.who, b.expr);
@@ -343,10 +404,11 @@ function typewrite(txt){
 $("dlg").onclick=()=>{ if(typing){clearInterval(typeTimer);typing=false;
     const t=beats[bi].text; $("dlg").innerHTML=t+'<span id="adv">▼</span>'; return;}
   bi++; if(bi<beats.length) renderBeat(beats[bi]); else { const cb=afterBeats; afterBeats=null; cb&&cb(); } };
-function play(arr,done){ beats=arr;bi=0;afterBeats=done; $("choices").classList.remove('show'); $("dlgWrap").style.display='block'; renderBeat(beats[0]); }
+function play(arr,done){ exitCalmMode(); beats=arr;bi=0;afterBeats=done; $("choices").classList.remove('show'); $("dlgWrap").style.display='block'; renderBeat(beats[0]); }
 
 /* ============================ CHOICES ==================================== */
 function ask(prompt,list,onPick){
+  enterCalmMode(); // จอสงบก่อนเลือก — ห้ามกระพริบ/สั่นขณะชั่งใจ
   $("dlgWrap").style.display='none';
   const box=$("choices"); box.innerHTML=`<div class="ask">${prompt}</div>`;
   list.slice().sort(()=>Math.random()-.5).forEach(ch=>{   // สลับลำดับ กัน position bias
@@ -365,10 +427,79 @@ function updateHUD(){
   $("g_power").style.width=Math.max(8,Math.min(100,S.power))+'%';
   const t={unknown:'นัท: ?',safe:'นัท: ปลอดภัย',trapped:'นัท: ติดอยู่!',injured:'นัท: บาดเจ็บ'}[S.nut];
   $("nutStat").textContent=t; $("nutStat").style.color=S.nut==='trapped'?'#ff5d70':S.nut==='injured'?'#ffb547':'#5bd6b0';
+  updateAtmosphere();
 }
 
+/* ============================ EFFECTS ENGINE ============================= */
+let reducedMotion = matchMedia('(prefers-reduced-motion:reduce)').matches;
+const _noFX = () => reducedMotion || matchMedia('(prefers-reduced-motion:reduce)').matches;
+let _shakeCd=0, _flickerCd=0, _glitchCd=0;
+
+function fireShake(){
+  if(_noFX()||Date.now()<_shakeCd) return;
+  _shakeCd=Date.now()+600;
+  const v=$("vn"); v.classList.remove('shake'); void v.offsetWidth; v.classList.add('shake');
+  setTimeout(()=>v.classList.remove('shake'),550);
+}
+function fireFlicker(){
+  if(_noFX()||Date.now()<_flickerCd) return;
+  _flickerCd=Date.now()+1400;
+  const o=$("fxOverlay"); o.classList.remove('flicker'); void o.offsetWidth; o.classList.add('flicker');
+  setTimeout(()=>o.classList.remove('flicker'),1300);
+}
+function fireGlitch(){
+  if(_noFX()||Date.now()<_glitchCd) return;
+  _glitchCd=Date.now()+600;
+  const g=$("bgArt"); g.classList.remove('glitch'); void g.offsetWidth; g.classList.add('glitch');
+  setTimeout(()=>g.classList.remove('glitch'),500);
+}
+function triggerFX(b){
+  if(!b.bg) return; // เฉพาะ beat ที่เปลี่ยนฉาก (scene-transition) เท่านั้น
+  const loc=b.bg;
+  // Shake: ฉากที่มี impact/collision/power-surge + alert
+  if(b.alert && ['bridge','moduleB','reactor'].includes(loc)) setTimeout(fireShake,50);
+  // Flicker: ฉากไฟลาม/ฉุกเฉิน + alert
+  if(b.alert && ['bridge','corridor','reactor'].includes(loc)) setTimeout(fireFlicker,130);
+  // Glitch: ฉากที่ระบบรวน/สัญญาณขัดข้อง
+  if(['nav','comms'].includes(loc)) setTimeout(fireGlitch,80);
+  // Manual override ผ่าน field fx ใน beat
+  if(b.fx==='shake')   setTimeout(fireShake,50);
+  if(b.fx==='flicker') setTimeout(fireFlicker,130);
+  if(b.fx==='glitch')  setTimeout(fireGlitch,80);
+}
+function enterCalmMode(){
+  // ลดเอฟเฟกต์ทั้งหมดก่อนโชว์ตัวเลือก — ไม่ให้รบกวนการตัดสินใจ
+  $("vn").classList.remove('shake');
+  $("fxOverlay").classList.remove('flicker');
+  $("bgArt").classList.remove('glitch');
+  $("bg").classList.add('calm-mode');   // หยุดไฟแดงกระพริบ
+}
+function exitCalmMode(){
+  $("bg").classList.remove('calm-mode');
+}
+function updateAtmosphere(){
+  // สะท้อนสถานะยานบนจอต่อเนื่อง (ไม่กระพริบถี่)
+  $("crackOverlay").classList.toggle('active', S.hull < 40);
+  $("dimOverlay").classList.toggle('active', S.power < 35);
+}
+$("fxToggle").onclick=()=>{
+  reducedMotion=!reducedMotion;
+  $("fxToggle").classList.toggle('off',reducedMotion);
+  $("fxToggle").title=reducedMotion?'เปิดเอฟเฟกต์':'ลดเอฟเฟกต์';
+  if(reducedMotion){
+    // ล้างทันที
+    $("vn").classList.remove('shake');
+    $("fxOverlay").classList.remove('flicker');
+    $("bgArt").classList.remove('glitch');
+    $("dimOverlay").classList.remove('active');
+    $("crackOverlay").classList.remove('active');
+  } else {
+    updateAtmosphere();
+  }
+};
+
 /* ============================ CONTENT (12 จุด) =========================== */
-const b=(who,expr,text,bg,alert)=>({who,expr,text,bg,alert});
+const b=(who,expr,text,bg,alert,fx)=>({who,expr,text,bg,alert,fx});
 
 function assertDomains(){
   const req=new Set(['R','I','A','S','E','C']);
