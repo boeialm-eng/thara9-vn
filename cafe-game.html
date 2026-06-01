@@ -310,7 +310,7 @@ const ding=()=>[440,550,660].forEach((f,i)=>tone(f,.25,'sine',.13,i*.08));
 $("mute").onclick=()=>{muted=!muted;if(master)master.gain.value=muted?0:.42;$("mute").textContent=muted?'♪̶':'♪';};
 
 /* DIALOGUE RUNTIME */
-let beats=[],bi=0,typing=false,typeTimer=null,afterBeats=null,curBG='counter';
+let beats=[],bi=0,typing=false,typeTimer=null,afterBeats=null,curBG=null;
 const CH={min:{name:'มิน',cls:'min',face:faceMin},mae:{name:'แม่ต้า',cls:'boss',face:faceMae},
   narr:{name:'',cls:'narr',face:null},you:{name:'',cls:'narr',face:null}};
 
@@ -731,6 +731,30 @@ function showResult(){
   const RESULT={game:'cafe',ts:Date.now(),tally:{...tally},code:r.code,values:valuesChoice,log:behaviorLog};
   console.log('RESULT',RESULT);
   $("again").onclick=()=>location.reload();}
+
+// ── Parallax — ฉากเลื่อนเบา ๆ ตาม mouse / deviceorientation ─────────────────
+;(()=>{
+  let tx=0,ty=0,cx=0,cy=0;
+  const MAX=3, L=.08;
+  const lerp=(a,b,t)=>a+(b-a)*t;
+  (function loop(){
+    if(reducedMotion){tx=ty=cx=cy=0;}
+    cx=lerp(cx,tx,L); cy=lerp(cy,ty,L);
+    const g=$('bgArt');
+    if(g) g.style.transform = reducedMotion ? '' : `translate(${cx.toFixed(2)}px,${cy.toFixed(2)}px)`;
+    requestAnimationFrame(loop);
+  })();
+  window.addEventListener('mousemove',e=>{
+    if(reducedMotion) return;
+    tx=(e.clientX/window.innerWidth -.5)*MAX*2;
+    ty=(e.clientY/window.innerHeight-.5)*MAX*2;
+  },{passive:true});
+  window.addEventListener('deviceorientation',e=>{
+    if(reducedMotion) return;
+    tx=Math.min(MAX,Math.max(-MAX,(e.gamma||0)/45*MAX));
+    ty=Math.min(MAX,Math.max(-MAX,((e.beta||0)-45)/45*MAX));
+  },{passive:true});
+})();
 </script>
 </body>
 </html>
