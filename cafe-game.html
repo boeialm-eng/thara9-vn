@@ -304,27 +304,57 @@ function bgScene(loc){
   return `<svg width="100%" height="100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid slice" style="position:absolute;inset:0">${sc[loc]||sc.counter}</svg>`;
 }
 
-/* AUDIO — โทนคาเฟ่อบอุ่น */
+/* AUDIO — เสียงคาเฟ่ไทย */
 let actx,master,muted=false;
-function initAudio(){if(actx)return;actx=new(window.AudioContext||window.webkitAudioContext)();
+function initAudio(){
+  if(actx)return;
+  actx=new(window.AudioContext||window.webkitAudioContext)();
   master=actx.createGain();master.gain.value=.38;master.connect(actx.destination);
-  // ambient chord: C3-E3-G3 นุ่มอุ่น เหมือนนั่งในคาเฟ่
-  const bg=actx.createGain();bg.gain.value=.018;bg.connect(master);
-  [[130.8,'sine'],[164.8,'sine'],[196,'sine']].forEach(([f])=>{
-    const o=actx.createOscillator();o.type='sine';o.frequency.value=f;o.connect(bg);o.start();});}
-function tone(f,d,t='sine',v=.12,delay=0){if(!actx||muted)return;const s=actx.currentTime+delay,o=actx.createOscillator(),g=actx.createGain();
-  o.type=t;o.frequency.value=f;g.gain.setValueAtTime(.0001,s);g.gain.linearRampToValueAtTime(v,s+.015);g.gain.exponentialRampToValueAtTime(.0001,s+d);
-  o.connect(g);g.connect(master);o.start(s);o.stop(s+d+.05);}
-// blip: sine นุ่ม เหมือนปากกาแตะกระดาษ
-const blip=()=>tone(420,.04,'sine',.055);
-// pick: tap อุ่น ๆ
-const pick=()=>tone(520,.07,'sine',.11);
-// ding: C major arpeggio อบอุ่นสดใส
-const ding=()=>[261,330,392,523].forEach((f,i)=>tone(f,.28,'sine',.11,i*.09));
-// doorbell: ติ๊งหน่อง สองโน้ต (ลูกค้าเข้าร้าน)
-const doorbell=()=>{tone(880,.18,'sine',.13);tone(784,.26,'sine',.09,.2);};
-// cafeAlert: เตือนนุ่ม ๆ (ของหมด/เครื่องเสีย)
-const cafeAlert=()=>{tone(600,.1,'triangle',.09);tone(600,.1,'triangle',.07,.22);};
+  // Ambient: เสียงฮัมเครื่องชงกาแฟ — chord เบส detuned C2-G2-C3 ให้รู้สึกร้อน/อุ่น
+  const bg=actx.createGain();bg.gain.value=.013;bg.connect(master);
+  [[65.4,0],[98,.8],[130.8,-.6],[196,.4]].forEach(([f,det])=>{
+    const o=actx.createOscillator();o.type='sine';o.frequency.value=f+det;o.connect(bg);o.start();
+  });
+  // Filtered noise เบา ๆ = เสียงพื้นหลังร้าน (เสียงคุย/ไอน้ำ)
+  try{
+    const buf=actx.createBuffer(1,actx.sampleRate*4,actx.sampleRate);
+    const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1);
+    const src=actx.createBufferSource();src.buffer=buf;src.loop=true;
+    const f1=actx.createBiquadFilter();f1.type='bandpass';f1.frequency.value=750;f1.Q.value=1.2;
+    const f2=actx.createBiquadFilter();f2.type='lowpass';f2.frequency.value=1800;
+    const ng=actx.createGain();ng.gain.value=.005;
+    src.connect(f1);f1.connect(f2);f2.connect(ng);ng.connect(bg);src.start();
+  }catch(e){}
+}
+function tone(f,d,t='sine',v=.12,delay=0){
+  if(!actx||muted)return;
+  const s=actx.currentTime+delay,o=actx.createOscillator(),g=actx.createGain();
+  o.type=t;o.frequency.value=f;
+  g.gain.setValueAtTime(.0001,s);g.gain.linearRampToValueAtTime(v,s+.012);
+  g.gain.exponentialRampToValueAtTime(.0001,s+d);
+  o.connect(g);g.connect(master);o.start(s);o.stop(s+d+.06);
+}
+// blip — เสียง "tok" น้ำหยด/ปากกาแตะกระดาษ (pitch ตกลงเร็ว)
+const blip=()=>{
+  if(!actx||muted)return;
+  const s=actx.currentTime,o=actx.createOscillator(),g=actx.createGain();
+  o.type='sine';
+  o.frequency.setValueAtTime(500,s);o.frequency.exponentialRampToValueAtTime(140,s+.08);
+  g.gain.setValueAtTime(.0001,s);g.gain.linearRampToValueAtTime(.07,s+.006);
+  g.gain.exponentialRampToValueAtTime(.0001,s+.1);
+  o.connect(g);g.connect(master);o.start(s);o.stop(s+.12);
+};
+// pick — แตะแก้ว/กดปุ่มเครื่องชง (fundamental + harmonic)
+const pick=()=>{tone(660,.06,'sine',.13);tone(1320,.03,'sine',.05,.01);};
+// ding — กระดิ่งเสิร์ฟ arpeggio C5 + octave overtone (เหมือนเคาะระฆัง)
+const ding=()=>[523,659,784,1047].forEach((f,i)=>{
+  tone(f,.65,'sine',.12,i*.1);
+  tone(f*2,.28,'sine',.04,i*.1+.01);
+});
+// doorbell — กระดิ่งประตูร้าน ติ๊งหน่อง (A5→E5 ลงมา)
+const doorbell=()=>{tone(880,.35,'sine',.15,0);tone(659,.45,'sine',.12,.32);};
+// cafeAlert — กระดิ่งออเดอร์ขึ้น (double ding คล้ายออเดอร์พร้อม)
+const cafeAlert=()=>{tone(880,.16,'sine',.14,0);tone(880,.13,'sine',.11,.22);};
 $("mute").onclick=()=>{muted=!muted;if(master)master.gain.value=muted?0:.38;$("mute").textContent=muted?'♪̶':'♪';};
 
 /* DIALOGUE RUNTIME */
