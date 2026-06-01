@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+<title>ร้านสุขใจ · วันวุ่นของเจ้าของร้าน</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Mali:wght@500;600;700&family=Noto+Sans+Thai:wght@400;600;700&family=Share+Tech+Mono&display=swap');
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;}
+:root{--ink:#fff8f0;--warm:#ff9d4d;--min:#ff7a9d;--boss:#c8924a;--warn:#e05050;--green:#5e8c4a;}
+html,body{height:100%;}
+body{font-family:'Noto Sans Thai',sans-serif;background:#140a02;color:var(--ink);overflow:hidden;}
+#vn{position:relative;max-width:540px;height:100vh;margin:0 auto;overflow:hidden;}
+
+/* BG */
+#bg{position:absolute;inset:0;overflow:hidden;}
+#bgArt,#eventArt{position:absolute;inset:0;}
+#eventArt{z-index:1;opacity:0;transition:opacity 1.2s ease;pointer-events:none;}
+#eventArt.show{opacity:1;}
+#bg.alert::after{content:"";position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 40%,transparent 40%,rgba(220,60,20,.2));animation:pulse 1.3s infinite;pointer-events:none;}
+@keyframes pulse{50%{opacity:.4}}
+.scan{position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.1) 0 1px,transparent 1px 3px);z-index:6;}
+.vig{position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 110px rgba(14,6,0,.88);z-index:5;}
+
+/* CHAR */
+#char{position:absolute;left:50%;bottom:165px;transform:translateX(-50%);z-index:4;width:230px;height:300px;display:flex;align-items:flex-end;justify-content:center;transition:opacity .3s;}
+#char svg{filter:drop-shadow(0 8px 22px rgba(0,0,0,.55));}
+#char img.sprite{height:100%;width:auto;object-fit:contain;border-radius:12px;box-shadow:0 0 0 1px rgba(255,157,77,.12),0 12px 32px rgba(0,0,0,.6);animation:floatIdle 4s ease-in-out infinite;}
+
+/* HUD */
+#hud{position:absolute;top:0;left:0;right:0;z-index:8;display:flex;gap:10px;align-items:center;padding:8px 12px;font-family:'Share Tech Mono';font-size:10px;color:#f0d0a8;background:linear-gradient(180deg,rgba(14,6,0,.8),transparent);}
+.gauge{flex:1;} .gauge .lab{letter-spacing:1px;opacity:.7;}
+.gauge .bar{height:5px;background:#2e1508;border-radius:3px;margin-top:2px;overflow:hidden;}
+.gauge .fill{height:100%;border-radius:3px;transition:width .5s;}
+#minStat{white-space:nowrap;color:var(--min);}
+#fxToggle,#mute{border:1px solid #3e2010;background:transparent;color:#f0d0a8;border-radius:7px;padding:3px 8px;font-family:'Share Tech Mono';font-size:10px;cursor:pointer;}
+#fxToggle.off{color:var(--warn);border-color:rgba(224,80,80,.4);}
+
+/* DIALOGUE */
+#dlgWrap{position:absolute;left:0;right:0;bottom:0;z-index:9;padding:10px;}
+#namebox{display:inline-block;font-family:'Mali';font-weight:700;font-size:14px;padding:4px 16px;border-radius:10px 10px 0 0;background:var(--warm);color:#140a02;margin-left:6px;}
+#namebox.min{background:var(--min);} #namebox.boss{background:var(--boss);} #namebox.narr{display:none;}
+#dlg{background:linear-gradient(180deg,rgba(28,14,4,.96),rgba(18,8,2,.97));border:1px solid #4e2a12;border-radius:0 14px 14px 14px;padding:15px 16px 16px;min-height:96px;box-shadow:0 0 28px rgba(255,157,77,.1);font-size:15.5px;line-height:1.6;cursor:pointer;}
+#dlg.narr-style{font-style:italic;color:#e8c8a0;}
+#adv{position:absolute;right:18px;bottom:18px;color:var(--warm);font-size:13px;animation:bob 1s infinite;}
+@keyframes bob{50%{transform:translateY(3px)}}
+
+/* CHOICES */
+#choices{position:absolute;left:0;right:0;bottom:0;z-index:11;padding:12px;display:none;flex-direction:column;gap:8px;background:linear-gradient(0deg,rgba(14,6,0,.96) 70%,transparent);max-height:80%;overflow-y:auto;}
+#choices.show{display:flex;}
+.ask{font-family:'Mali';font-weight:600;font-size:14px;color:#f0d0a8;text-align:center;margin-bottom:2px;}
+.ch{border:1px solid #4e2a12;background:rgba(28,14,4,.92);border-radius:11px;padding:12px 14px;color:var(--ink);font-family:'Noto Sans Thai';font-size:14px;line-height:1.4;text-align:left;cursor:pointer;transition:transform .07s,box-shadow .15s,background .15s;}
+.ch:hover{background:rgba(60,28,8,.96);box-shadow:0 0 16px rgba(255,157,77,.2);border-color:var(--warm);}
+.ch:active{transform:scale(.99);}
+
+/* OVERLAYS */
+.ov{position:absolute;inset:0;z-index:30;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(14,6,0,.84);backdrop-filter:blur(4px);}
+.ov.show{display:flex;animation:fade .3s;} @keyframes fade{from{opacity:0}}
+/* Result — position:fixed เพื่อหลุดจาก #vn overflow:hidden ให้เลื่อนได้ */
+#result{position:fixed;align-items:flex-start;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.box{background:linear-gradient(180deg,rgba(30,16,6,.97),rgba(20,10,4,.98));border:1px solid #4e2a12;border-radius:18px;padding:22px;max-width:460px;width:100%;text-align:center;box-shadow:0 0 44px rgba(255,157,77,.12);}
+#result .box{overflow:visible;max-height:none;text-align:left;margin:20px auto;padding-bottom:28px;}
+.box h1{font-family:'Mali';font-size:26px;color:var(--warm);margin-bottom:4px;}
+.box h2{font-family:'Mali';font-size:17px;color:var(--warm);margin-bottom:8px;}
+.box p{font-size:14.5px;line-height:1.65;color:#e8d8c8;}
+.btn{font-family:'Mali';font-weight:700;border:1px solid var(--warm);background:rgba(255,157,77,.14);color:#fff8f0;border-radius:11px;padding:13px 18px;font-size:15px;cursor:pointer;width:100%;margin-top:9px;box-shadow:0 0 14px rgba(255,157,77,.15);}
+.btn:hover{background:rgba(255,157,77,.26);} .btn.alt{border-color:#4e2a12;background:transparent;box-shadow:none;color:#f0d0a8;}
+.code{font-family:'Mali';font-weight:700;font-size:44px;letter-spacing:8px;text-align:center;}
+.codeword{font-size:12px;color:#b09070;text-align:center;}
+.grp{display:flex;gap:10px;padding:9px 0;border-top:1px solid #4e2a12;}
+.gbar{width:5px;border-radius:5px;}
+.tag{font-size:9px;padding:2px 8px;border-radius:20px;white-space:nowrap;align-self:start;}
+.vnote{font-size:12px;background:rgba(255,157,77,.07);border:1px solid #4e2a12;border-radius:10px;padding:10px;margin-top:10px;line-height:1.55;}
+.fnote{font-size:10.5px;color:#b09070;line-height:1.6;margin-top:12px;}
+
+/* ANIMATION */
+@keyframes kenBurns{from{transform:scale(1.03) translate(0,0)}to{transform:scale(1.08) translate(-10px,-6px)}}
+@keyframes kenBurns2{from{transform:scale(1.08) translate(9px,5px)}to{transform:scale(1.03) translate(0,0)}}
+@keyframes floatIdle{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+#bgArt img{animation:kenBurns 28s ease-in-out infinite alternate;will-change:transform;}
+#eventArt img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;animation:kenBurns2 33s ease-in-out infinite alternate-reverse;will-change:transform;}
+#vn.motion-reduced #bgArt img,#vn.motion-reduced #eventArt img,#vn.motion-reduced #char img.sprite{animation:none!important;transform:none!important;}
+@media(prefers-reduced-motion:reduce){#bgArt img,#eventArt img,#char img.sprite{animation:none!important;transform:none!important;}}
+
+/* EFFECTS */
+@keyframes shakeFx{0%,100%{transform:translate(0,0)}15%{transform:translate(-3px,2px)}30%{transform:translate(3px,-2px)}45%{transform:translate(-2px,3px)}60%{transform:translate(2px,-1px)}}
+@keyframes flickerFx{0%,100%{opacity:0}5%{opacity:.5}13%{opacity:0}38%{opacity:.42}44%{opacity:0}68%{opacity:.32}73%{opacity:0}}
+#vn.shake{animation:shakeFx .5s ease forwards;}
+#fxOverlay{position:absolute;inset:0;z-index:28;pointer-events:none;background:#000;opacity:0;}
+#fxOverlay.flicker{animation:flickerFx 1.2s ease forwards;}
+#crackOverlay{position:absolute;inset:0;z-index:7;pointer-events:none;opacity:0;transition:opacity 2s;box-shadow:inset 0 0 80px rgba(200,60,20,.5),inset 0 0 40px rgba(200,40,10,.25);}
+#crackOverlay.active{opacity:1;}
+#dimOverlay{position:absolute;inset:0;z-index:6;pointer-events:none;background:#000;opacity:0;transition:opacity 2s;}
+#dimOverlay.active{opacity:.35;}
+#bg.alert.calm-mode::after{animation:none!important;opacity:.12!important;}
+</style>
+</head>
+<body>
+<div id="vn">
+  <div id="bg"><div id="bgArt"></div><div id="eventArt"></div></div>
+  <div class="vig"></div><div class="scan"></div>
+  <div id="fxOverlay"></div>
+  <div id="crackOverlay"></div>
+  <div id="dimOverlay"></div>
+
+  <div id="hud">
+    <div class="gauge"><div class="lab">REP</div><div class="bar"><div class="fill" id="g_rep" style="background:#ff9d4d"></div></div></div>
+    <div class="gauge"><div class="lab">TEAM</div><div class="bar"><div class="fill" id="g_team" style="background:#5e8c4a"></div></div></div>
+    <span id="minStat">มิน: ปกติ</span>
+    <button id="fxToggle" title="ลดเอฟเฟกต์">✦</button>
+    <button id="mute">♪</button>
+  </div>
+
+  <div id="char"></div>
+
+  <div id="dlgWrap">
+    <div id="namebox">—</div>
+    <div id="dlg">—<span id="adv">▼</span></div>
+  </div>
+  <div id="choices"></div>
+
+  <div class="ov show" id="start"><div class="box">
+    <h1>ร้านสุขใจ</h1>
+    <p style="color:#f0d0a8;font-family:'Share Tech Mono';font-size:11px;margin-bottom:10px">วันวุ่นของเจ้าของร้าน</p>
+    <p>วันนี้เธอดูแลร้านคาเฟ่เล็ก ๆ ที่เปิดมาได้สองปี มีน้อง <b style="color:var(--min)">มิน</b> ที่ขยันแต่ขี้กังวล และ <b style="color:var(--boss)">แม่ต้า</b> รุ่นพี่ที่ดูแลครัวมาตั้งแต่ต้น<br><br>แล้ววันนี้เหตุการณ์ต่าง ๆ ก็เริ่มเกิดขึ้น — <b>เลือกสิ่งที่เธออยากลงมือทำ</b></p>
+    <button class="btn" id="startBtn">▶ เริ่มวัน</button>
+    <div class="fnote">12 สถานการณ์ · วัดความสนใจด้วยมาตรเดียวกับเกมอวกาศ</div>
+  </div></div>
+
+  <div class="ov" id="cp"><div class="box">
+    <h2 id="cpHead">— พัก —</h2>
+    <p id="cpText"></p>
+    <button class="btn" id="cpNext">เล่นต่อ ▶</button>
+  </div></div>
+
+  <div class="ov" id="result"><div class="box" id="card"></div></div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+
+/* ============================================================
+   แกนวัด RIASEC — ลอกจากเกมอวกาศเป๊ะ ไม่เปลี่ยนตรรกะ
+   ============================================================ */
+const TYPE={R:{c:'#ff7a4d',th:'ลงมือทำ'},I:{c:'#36c9c9',th:'วิเคราะห์'},A:{c:'#c46bd6',th:'สร้างสรรค์'},
+  S:{c:'#ffc24d',th:'ดูแลคน'},E:{c:'#ff5d70',th:'นำ/สั่งการ'},C:{c:'#5d8bff',th:'จัดระบบ'}};
+const DIMS=['R','I','A','S','E','C'],HEX={R:0,I:1,A:2,S:3,E:4,C:5};
+const GROUP={
+ R:{name:'สายสร้าง / ลงมือทำ',fac:'วิศวกรรม · เทคโนโลยี · เกษตร · สถาปัตย์(โครงสร้าง)',
+    jobs:'วิศวกร · นักพัฒนาซอฟต์แวร์ · ช่างเทคนิค · สถาปนิก · ผู้ประกอบการ',
+    desc:'เรียนรู้ผ่านการลงมือทำจริง ชอบเห็นผลลัพธ์ที่จับต้องได้',
+    strength:'แก้ปัญหาเฉพาะหน้าเก่ง ทำจริงทำได้',grow:'ลองวางแผนก่อนลงมือบ้าง'},
+ I:{name:'สายวิเคราะห์ / ค้นคว้า',fac:'วิทยาศาสตร์ · แพทย์/แล็บ · เภสัช · วิทยาการข้อมูล',
+    jobs:'นักวิทยาศาสตร์ · แพทย์ · นักวิจัย · Data Scientist · เภสัชกร',
+    desc:'ชอบเข้าใจว่า "ทำไม" ก่อนลงมือ สนุกกับการหาคำตอบ',
+    strength:'คิดเป็นระบบ แก้ปัญหาด้วยข้อมูล',grow:'อย่าคิดจนไม่เริ่ม ลองลงมือก่อนบ้าง'},
+ A:{name:'สายสร้างสรรค์',fac:'นิเทศ · ศิลปกรรม · สถาปัตย์(ออกแบบ) · ดิจิทัลมีเดีย',
+    jobs:'กราฟิกดีไซเนอร์ · UX Designer · ผู้กำกับ · นักโฆษณา · Content Creator',
+    desc:'มองหาวิธีใหม่ที่ไม่เหมือนใคร ชอบแสดงออกและสร้างสิ่งที่คนอื่นยังไม่คิดถึง',
+    strength:'ไอเดียสด ทำให้สิ่งธรรมดากลายเป็นสิ่งพิเศษ',grow:'ทำไอเดียให้เป็นจริงทีละขั้น'},
+ S:{name:'สายดูแล / เชื่อมคน',fac:'พยาบาล · ครุศาสตร์ · จิตวิทยา · สหเวช',
+    jobs:'พยาบาล · ครู · นักจิตวิทยา · นักสังคมสงเคราะห์ · HR',
+    desc:'ใส่ใจคนรอบข้าง สุขที่ได้ช่วยเหลือ มีความสามารถในการสร้างความสัมพันธ์ที่ดี',
+    strength:'เข้าใจคน ทีมเวิร์กดี คนรอบข้างไว้วางใจ',grow:'ดูแลตัวเองด้วย ไม่ใช่แค่คนอื่น'},
+ E:{name:'สายนำ / โน้มน้าว',fac:'บริหารธุรกิจ · นิติ · รัฐศาสตร์ · การตลาด',
+    jobs:'ผู้จัดการ · ทนายความ · นักการตลาด · ผู้ประกอบการ · นักการเมือง',
+    desc:'กล้าตัดสินใจและขับเคลื่อนให้สิ่งต่าง ๆ เกิดขึ้นจริง',
+    strength:'ผู้นำที่กล้าเสี่ยง ทำให้ทีมเคลื่อนไหว',grow:'ฟังทีมก่อนตัดสินใจให้มากขึ้น'},
+ C:{name:'สายจัดระบบ',fac:'บัญชี · การเงิน · ระบบสารสนเทศ · โลจิสติกส์',
+    jobs:'นักบัญชี · นักการเงิน · นักวิเคราะห์ระบบ · Logistics Manager · ผู้ตรวจสอบ',
+    desc:'ชอบความเป็นระเบียบและแม่นยำ ทำงานเชื่อถือได้ ไม่ชอบให้อะไรตกหล่น',
+    strength:'รอบคอบ เชื่อถือได้ จัดการได้ครบ',grow:'ลองยืดหยุ่นกับการเปลี่ยนแปลงมากขึ้น'},
+};
+
+/* STATE */
+let S={rep:70,cash:60,teamMood:70,stock:80,fatigue:20,minOk:true,knowRoot:false,bigGroup:false};
+const tally={R:0,I:0,A:0,S:0,E:0,C:0},behaviorLog=[];
+let valuesChoice=null,choiceT0=0;
+
+/* ============================================================ SVG ART */
+function faceMin(expr){
+  const E={
+    neutral:{br:'M72 78 L90 78 M110 78 L128 78',eye:'norm',mo:'M88 108 Q100 113 112 108',ex:''},
+    panic:  {br:'M70 70 L90 76 M110 76 L130 70',eye:'wide',mo:'M100 110 m-8 0 a8 8 0 1 0 16 0 a8 8 0 1 0 -16 0',ex:'<circle cx="126" cy="90" r="3" fill="#f9c8a8"/>'},
+    relieved:{br:'M72 76 Q81 72 92 76 M108 76 Q119 72 128 76',eye:'happy',mo:'M86 106 Q100 118 114 106',ex:''},
+    sad:    {br:'M72 74 Q81 80 90 80 M110 80 Q119 74 128 74',eye:'norm',mo:'M88 112 Q100 106 112 112',ex:''},
+    brave:  {br:'M72 74 L90 80 M110 80 L128 74',eye:'norm',mo:'M88 108 L112 108',ex:''},
+  }[expr]||{br:'M72 78 L90 78 M110 78 L128 78',eye:'norm',mo:'M88 108 Q100 113 112 108',ex:''};
+  const eyes=E.eye==='wide'
+    ?'<circle cx="82" cy="92" r="9" fill="#fff"/><circle cx="82" cy="92" r="5" fill="#4a3020"/><circle cx="118" cy="92" r="9" fill="#fff"/><circle cx="118" cy="92" r="5" fill="#4a3020"/>'
+    :E.eye==='happy'
+    ?'<path d="M74 94 Q82 86 90 94" stroke="#4a3020" stroke-width="3" fill="none"/><path d="M110 94 Q118 86 126 94" stroke="#4a3020" stroke-width="3" fill="none"/>'
+    :'<circle cx="82" cy="93" r="5" fill="#4a3020"/><circle cx="118" cy="93" r="5" fill="#4a3020"/>';
+  return `<svg width="200" height="270" viewBox="0 0 200 270">
+    <path d="M40 270 Q40 200 100 190 Q160 200 160 270Z" fill="#d0783a"/>
+    <path d="M78 190 L78 240 L122 240 L122 190" fill="#f4dfc0" stroke="#c0683060" stroke-width="1"/>
+    <rect x="88" y="178" width="24" height="24" rx="6" fill="#f5d0a0"/>
+    <ellipse cx="100" cy="96" rx="56" ry="62" fill="#f5d0a0"/>
+    <path d="M46 90 Q50 30 100 28 Q150 30 154 90 Q148 60 100 56 Q52 60 46 90Z" fill="#4a2818"/>
+    <path d="M46 94 Q42 72 50 58Z" fill="#4a2818"/>
+    <path d="M154 94 Q158 72 150 58Z" fill="#4a2818"/>
+    ${eyes}
+    <path d="${E.br}" stroke="#4a2818" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="${E.mo}" stroke="#a06060" stroke-width="3" fill="none" stroke-linecap="round"/>
+    ${E.ex}
+  </svg>`;
+}
+function faceMae(expr){
+  const mo=expr==='happy'?'M86 110 Q100 122 114 110':expr==='worried'?'M88 114 Q100 108 112 114':'M88 110 Q100 116 112 110';
+  const br=expr==='worried'?'M72 76 Q81 82 90 80 M110 80 Q119 76 128 74':'M72 78 L90 78 M110 78 L128 78';
+  const extra=expr==='happy'?'<path d="M74 96 Q82 88 90 96" stroke="#4a2818" stroke-width="2.5" fill="none"/><path d="M110 96 Q118 88 126 96" stroke="#4a2818" stroke-width="2.5" fill="none"/>':'<circle cx="82" cy="94" r="5" fill="#4a2818"/><circle cx="118" cy="94" r="5" fill="#4a2818"/>';
+  return `<svg width="200" height="270" viewBox="0 0 200 270">
+    <path d="M40 270 Q40 200 100 192 Q160 200 160 270Z" fill="#7a4820"/>
+    <ellipse cx="100" cy="96" rx="54" ry="60" fill="#e8c298"/>
+    <path d="M48 90 Q52 34 100 32 Q148 34 152 90 Q148 64 100 60 Q52 64 48 90Z" fill="#5a3218"/>
+    <path d="M48 98 Q44 78 52 64Z" fill="#5a3218"/>
+    <!-- Grey streaks -->
+    <path d="M52 80 Q58 50 80 44" stroke="#9a8878" stroke-width="3" fill="none" opacity=".6"/>
+    ${extra}
+    <path d="${br}" stroke="#4a2818" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="${mo}" stroke="#a06060" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+  </svg>`;
+}
+function bgScene(loc){
+  const W=540,H=960;
+  const sc={
+    counter:`<rect width="${W}" height="${H}" fill="#1e0e04"/>
+      <rect x="0" y="580" width="${W}" height="380" fill="#2e1608"/>
+      <rect x="0" y="564" width="${W}" height="22" fill="#4e2a10"/>
+      <rect x="100" y="380" width="110" height="175" rx="8" fill="#240e04"/><rect x="115" y="360" width="80" height="28" rx="4" fill="#240e04"/>
+      <circle cx="155" cy="500" r="28" fill="#180a02" stroke="#ff9d4d44" stroke-width="2"/>
+      <rect x="280" y="400" width="200" height="155" rx="6" fill="#240e04" stroke="#4e2a10" stroke-width="2"/>
+      ${Array.from({length:4}).map((_,i)=>`<circle cx="${300+i*45}" cy="${460}" r="18" fill="#1a0802" stroke="#ff9d4d33" stroke-width="1"/>`).join('')}
+      <circle cx="140" cy="80" r="50" fill="#ffb84d" opacity=".1"/><circle cx="400" cy="100" r="60" fill="#ffb84d" opacity=".08"/>`,
+    kitchen:`<rect width="${W}" height="${H}" fill="#200e04"/>
+      ${Array.from({length:11}).map((_,i)=>Array.from({length:6}).map((_,j)=>`<rect x="${i*50}" y="${j*52+160}" width="48" height="50" fill="none" stroke="#3a1a0833" stroke-width="1"/>`).join('')).join('')}
+      <rect x="40" y="530" width="240" height="130" rx="6" fill="#280e04"/>
+      <circle cx="108" cy="570" r="30" fill="#1a0802" stroke="#ff6a3a44" stroke-width="2"/>
+      <circle cx="200" cy="570" r="30" fill="#1a0802" stroke="#ff6a3a33" stroke-width="2"/>
+      <ellipse cx="108" cy="543" rx="32" ry="12" fill="#3a3020"/><rect x="76" y="470" width="64" height="75" rx="6" fill="#3a3020"/>
+      <rect x="320" y="540" width="190" height="90" rx="4" fill="#3e2010"/><rect x="320" y="528" width="190" height="16" fill="#4e2a18"/>`,
+    floor:`<rect width="${W}" height="${H}" fill="#1c0e04"/>
+      <rect x="0" y="620" width="${W}" height="340" fill="#281408"/>
+      ${Array.from({length:3}).map((_,i)=>`
+        <rect x="${40+i*165}" y="570" width="110" height="65" rx="6" fill="#3a1e08"/>
+        <rect x="${50+i*165}" y="630" width="22" height="55" rx="3" fill="#3a1e08"/>
+        <rect x="${120+i*165}" y="630" width="22" height="55" rx="3" fill="#3a1e08"/>
+      `).join('')}
+      <rect x="16" y="400" width="18" height="200" fill="#3a1e08"/>
+      <ellipse cx="25" cy="380" rx="42" ry="38" fill="#3a5e28" opacity=".75"/>
+      <rect x="490" y="350" width="18" height="240" fill="#3a1e08"/>
+      <ellipse cx="499" cy="332" rx="38" ry="34" fill="#3a5e28" opacity=".7"/>
+      <rect x="160" y="50" width="220" height="300" rx="14" fill="#ffb84d" opacity=".055"/>
+      <rect x="160" y="50" width="220" height="300" rx="14" fill="none" stroke="#5a3010" stroke-width="5"/>`,
+    backroom:`<rect width="${W}" height="${H}" fill="#180a02"/>
+      ${Array.from({length:4}).map((_,i)=>`
+        <rect x="16" y="${200+i*100}" width="220" height="12" fill="#3a1e08"/>
+        ${Array.from({length:3}).map((_,j)=>`<rect x="${24+j*70}" y="${174+i*100}" width="58" height="30" rx="3" fill="${['#3a2e18','#283820','#302818'][j]}"/>`).join('')}
+      `).join('')}
+      <rect x="260" y="560" width="270" height="90" rx="6" fill="#3a2010"/>
+      <rect x="260" y="645" width="62" height="100" fill="#3a2010"/>
+      <rect x="468" y="645" width="62" height="100" fill="#3a2010"/>
+      <rect x="278" y="505" width="62" height="60" rx="4" fill="#281408"/>
+      <rect x="430" y="505" width="62" height="60" rx="4" fill="#281408"/>`,
+    office:`<rect width="${W}" height="${H}" fill="#1a0804"/>
+      <rect x="60" y="540" width="420" height="100" rx="6" fill="#3a2010"/>
+      <rect x="60" y="635" width="82" height="130" fill="#3a2010"/>
+      <rect x="398" y="635" width="82" height="130" fill="#3a2010"/>
+      <rect x="180" y="390" width="190" height="148" rx="8" fill="#1a1208" stroke="#3a2010" stroke-width="3"/>
+      <rect x="248" y="533" width="54" height="14" fill="#3a2010"/>
+      <rect x="184" y="394" width="182" height="140" rx="5" fill="#1e2a40" opacity=".85"/>
+      <rect x="200" y="412" width="70" height="10" rx="2" fill="#3a5878" opacity=".7"/>
+      <rect x="200" y="432" width="110" height="8" rx="2" fill="#3a5878" opacity=".5"/>
+      <rect x="200" y="448" width="90" height="8" rx="2" fill="#3a5878" opacity=".5"/>
+      ${Array.from({length:5}).map((_,i)=>`<rect x="${80+i*52}" y="512" width="42" height="32" rx="2" fill="#e8d8c0" transform="rotate(${-4+i*2} ${101+i*52} 528)"/>`).join('')}`,
+    storage:`<rect width="${W}" height="${H}" fill="#160a02"/>
+      ${Array.from({length:4}).map((_,i)=>`
+        <rect x="16" y="${170+i*120}" width="${W-32}" height="14" fill="#4a2a10"/>
+        ${Array.from({length:6}).map((_,j)=>`<rect x="${24+j*85}" y="${140+i*120}" width="76" height="38" rx="4" fill="${['#3a2c18','#2a3820','#382c18','#283428','#302818','#3a3018'][j%6]}"/>`).join('')}
+      `).join('')}
+      <rect x="330" y="387" width="80" height="40" rx="4" fill="#3a0808" stroke="#ff4428" stroke-width="1" opacity=".9"/>`,
+    ending:`<rect width="${W}" height="${H}" fill="#120602"/>
+      <rect x="60" y="60" width="420" height="340" rx="18" fill="#0c0804"/>
+      <circle cx="180" cy="220" r="36" fill="#ffb84d" opacity=".13"/>
+      <circle cx="390" cy="240" r="28" fill="#ffb84d" opacity=".1"/>
+      <rect x="200" y="190" width="150" height="64" rx="8" fill="#221008"/>
+      <rect x="0" y="620" width="${W}" height="340" fill="#200e06"/>
+      <rect x="160" y="555" width="32" height="48" rx="4" fill="#3a1e08"/>
+      <ellipse cx="176" cy="554" rx="20" ry="9" fill="#3a1e08"/>
+      <rect x="268" y="555" width="32" height="48" rx="4" fill="#3a1e08"/>
+      <ellipse cx="284" cy="554" rx="20" ry="9" fill="#3a1e08"/>
+      <circle cx="${W/2}" cy="380" r="220" fill="#ff9d4d" opacity=".035"/>`,
+  };
+  return `<svg width="100%" height="100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid slice" style="position:absolute;inset:0">${sc[loc]||sc.counter}</svg>`;
+}
+
+/* AUDIO */
+let actx,master,muted=false;
+function initAudio(){if(actx)return;actx=new(window.AudioContext||window.webkitAudioContext)();
+  master=actx.createGain();master.gain.value=.42;master.connect(actx.destination);
+  const g=actx.createGain();g.gain.value=.04;g.connect(master);
+  const o=actx.createOscillator(),o2=actx.createOscillator();o.type=o2.type='sine';o.frequency.value=48;o2.frequency.value=48.3;
+  o.connect(g);o2.connect(g);o.start();o2.start();}
+function tone(f,d,t='sine',v=.15,delay=0){if(!actx||muted)return;const s=actx.currentTime+delay,o=actx.createOscillator(),g=actx.createGain();
+  o.type=t;o.frequency.value=f;g.gain.setValueAtTime(.0001,s);g.gain.linearRampToValueAtTime(v,s+.01);g.gain.exponentialRampToValueAtTime(.0001,s+d);
+  o.connect(g);g.connect(master);o.start(s);o.stop(s+d+.03);}
+const blip=()=>tone(680,.05,'square',.05);
+const pick=()=>tone(820,.08,'triangle',.12);
+const ding=()=>[440,550,660].forEach((f,i)=>tone(f,.25,'sine',.13,i*.08));
+$("mute").onclick=()=>{muted=!muted;if(master)master.gain.value=muted?0:.42;$("mute").textContent=muted?'♪̶':'♪';};
+
+/* DIALOGUE RUNTIME */
+let beats=[],bi=0,typing=false,typeTimer=null,afterBeats=null,curBG='counter';
+const CH={min:{name:'มิน',cls:'min',face:faceMin},mae:{name:'แม่ต้า',cls:'boss',face:faceMae},
+  narr:{name:'',cls:'narr',face:null},you:{name:'',cls:'narr',face:null}};
+
+function setBG(loc,alert){if(loc&&loc!==curBG){curBG=loc;$("bgArt").innerHTML=bgScene(loc);}
+  $("bg").classList.toggle('alert',!!alert);}
+function setChar(who,expr){const c=CH[who];const box=$("char");
+  if(!c||!c.face){box.style.opacity=0;box.innerHTML='';return;}
+  box.style.opacity=1;box.innerHTML=c.face(expr);}
+function renderBeat(b){
+  if(b.bg!==undefined||b.alert!==undefined) setBG(b.bg,b.alert);
+  triggerFX(b);
+  const c=CH[b.who]||CH.narr;
+  $("namebox").className=c.cls;$("namebox").textContent=c.name;
+  setChar(b.who,b.expr);
+  $("dlg").classList.toggle('narr-style',b.who==='narr'||b.who==='you');
+  typewrite(b.text);}
+function typewrite(txt){typing=true;const el=$("dlg");el.innerHTML='';let i=0;clearInterval(typeTimer);
+  typeTimer=setInterval(()=>{el.textContent=txt.slice(0,++i);if(i%2===0)blip();
+    if(i>=txt.length){clearInterval(typeTimer);typing=false;el.innerHTML=txt+'<span id="adv">▼</span>';}},20);}
+$("dlg").onclick=()=>{if(typing){clearInterval(typeTimer);typing=false;
+    const t=beats[bi].text;$("dlg").innerHTML=t+'<span id="adv">▼</span>';return;}
+  bi++;if(bi<beats.length)renderBeat(beats[bi]);else{const cb=afterBeats;afterBeats=null;cb&&cb();}};
+function play(arr,done){exitCalmMode();beats=arr;bi=0;afterBeats=done;$("choices").classList.remove('show');$("dlgWrap").style.display='block';renderBeat(beats[0]);}
+
+/* CHOICES */
+function ask(prompt,list,onPick){
+  enterCalmMode();hideEventImage();
+  $("dlgWrap").style.display='none';
+  const box=$("choices");box.innerHTML=`<div class="ask">${prompt}</div>`;
+  list.slice().sort(()=>Math.random()-.5).forEach(ch=>{
+    const b=document.createElement('button');b.className='ch';b.textContent=ch.text;
+    b.onclick=()=>{pick();tally[ch.dom]++;behaviorLog.push({c:ch.dom,ms:Math.round(performance.now()-choiceT0)});
+      ch.eff&&ch.eff();updateHUD();box.classList.remove('show');$("dlgWrap").style.display='block';
+      play(ch.out(),onPick);};
+    box.appendChild(b);
+  });
+  box.classList.add('show');choiceT0=performance.now();}
+
+/* HUD */
+function updateHUD(){
+  $("g_rep").style.width=Math.max(8,Math.min(100,S.rep))+'%';
+  $("g_team").style.width=Math.max(8,Math.min(100,S.teamMood))+'%';
+  const st=S.minOk?'มิน: ปกติ':'มิน: เครียด!';
+  $("minStat").textContent=st;$("minStat").style.color=S.minOk?'#ff7a9d':'#ff5d70';
+  updateAtmosphere();}
+
+/* EFFECTS ENGINE */
+let reducedMotion=matchMedia('(prefers-reduced-motion:reduce)').matches;
+const _noFX=()=>reducedMotion||matchMedia('(prefers-reduced-motion:reduce)').matches;
+let _shCd=0,_flCd=0;
+function fireShake(){if(_noFX()||Date.now()<_shCd)return;_shCd=Date.now()+600;
+  const v=$("vn");v.classList.remove('shake');void v.offsetWidth;v.classList.add('shake');
+  setTimeout(()=>v.classList.remove('shake'),550);}
+function fireFlicker(){if(_noFX()||Date.now()<_flCd)return;_flCd=Date.now()+1400;
+  const o=$("fxOverlay");o.classList.remove('flicker');void o.offsetWidth;o.classList.add('flicker');
+  setTimeout(()=>o.classList.remove('flicker'),1300);}
+function triggerFX(b){if(!b.bg)return;
+  if(b.alert&&['counter','kitchen','floor'].includes(b.bg)){setTimeout(fireShake,50);setTimeout(fireFlicker,130);}
+  if(b.fx==='shake')setTimeout(fireShake,50);if(b.fx==='flicker')setTimeout(fireFlicker,130);}
+function enterCalmMode(){$("vn").classList.remove('shake');$("fxOverlay").classList.remove('flicker');$("bg").classList.add('calm-mode');}
+function exitCalmMode(){$("bg").classList.remove('calm-mode');}
+function updateAtmosphere(){$("crackOverlay").classList.toggle('active',S.rep<40);$("dimOverlay").classList.toggle('active',S.cash<30);}
+
+const EVENT_IMGS=['orders','stock','complaint','conflict','equipment','review','group','accounts','menu','safety','burnout','closing'];
+function showEventImage(i){const id=EVENT_IMGS[i];if(!id)return;
+  const art=$("eventArt");art.innerHTML=`<img src="assets/cafe_event_${id}.png" onerror="this.parentNode.innerHTML=''" alt="">`;
+  requestAnimationFrame(()=>art.classList.add('show'));}
+function hideEventImage(){const art=$("eventArt");art.classList.remove('show');
+  setTimeout(()=>{if(!art.classList.contains('show'))art.innerHTML='';},1300);}
+
+if(reducedMotion)$("vn").classList.add('motion-reduced');
+$("fxToggle").onclick=()=>{reducedMotion=!reducedMotion;$("fxToggle").classList.toggle('off',reducedMotion);
+  $("vn").classList.toggle('motion-reduced',reducedMotion);
+  if(reducedMotion){$("vn").classList.remove('shake');$("fxOverlay").classList.remove('flicker');
+    $("dimOverlay").classList.remove('active');$("crackOverlay").classList.remove('active');}
+  else updateAtmosphere();};
+
+/* ============================================================ CONTENT */
+const b=(who,expr,text,bg,alert,fx)=>({who,expr,text,bg,alert,fx});
+
+function assertDomains(){
+  const req=new Set(['R','I','A','S','E','C']);
+  CRISES.forEach((c,i)=>{const doms=new Set(c.choices().map(ch=>ch.dom));
+    const miss=[...req].filter(d=>!doms.has(d));
+    if(miss.length)console.error(`❌ CRISES[${i}] ขาดโดเมน: ${miss.join(',')}`);});}
+
+const CRISES=[
+  // ---- จุด 0: ออเดอร์แน่น ----
+  { intro:(ST)=>{const arr=[
+      b('min','panic','พี่! ออเดอร์เข้ามาพร้อมกัน 8 รายการ คนหน้าร้านแน่นเลย ครัวตามไม่ทัน','counter',true),
+      b('narr',null,'เช้าวันพฤหัส คนมามากกว่าที่คิด กลิ่นกาแฟหอม แต่ทุกคนกำลังรอ'),
+    ];
+    if(ST.teamMood<55)arr.push(b('min','sad','ทีมหน้าตาไม่ค่อยดีแล้วนะพี่ กดดันกันอยู่'));
+    else arr.push(b('min','brave','ทีมยังโอเคนะพี่ แต่ต้องเร็วหน่อย!'));
+    arr.push(b('you',null,'ออเดอร์สะสมขึ้นทุกวินาที — เธอจะทำอะไรก่อน?'));return arr;},
+    choices:()=>[
+      {text:'เข้าครัวช่วยทำเองทันที',dom:'R',eff:()=>{S.cash+=8;S.fatigue+=5;},out:()=>[b('min','relieved','พี่ลงมือเอง ออเดอร์เริ่มออกเร็วขึ้น!')]},
+      {text:'วิเคราะห์ว่าออเดอร์ไหนทำช้าสุด จัดลำดับก่อน',dom:'I',eff:()=>{S.knowRoot=true;},out:()=>[b('min','brave','เห็นเลยว่าชาทีคอขวด แก้จุดนั้นทุกอย่างคล่องขึ้น')]},
+      {text:'สร้างระบบบอกคิวสนุก ๆ ให้ลูกค้าไม่เครียดระหว่างรอ',dom:'A',eff:()=>S.rep+=5,out:()=>[b('min','relieved','ลูกค้ายิ้มทั้งที่รออยู่ ไม่น่าเชื่อเลย')]},
+      {text:'ไปขอโทษลูกค้าที่รอนานเป็นพิเศษ',dom:'S',eff:()=>{S.rep+=6;S.teamMood+=3;},out:()=>[b('min','relieved','ลูกค้าใจดีขึ้นเลย พอรู้ว่ามีคนใส่ใจ')]},
+      {text:'แบ่งหน้าที่ทีมใหม่ทันที ใครทำอะไรชัด ๆ',dom:'E',eff:()=>S.teamMood+=5,out:()=>[b('min','brave','ทีมเดินหน้าเลย พอรู้บทบาทตัวเองชัด')]},
+      {text:'จัดระบบตั๋วออเดอร์/คิวให้เป็นระเบียบ',dom:'C',eff:()=>S.cash+=4,out:()=>[b('min','brave','มีระบบแล้ว ออเดอร์ไม่หายอีกต่อไป')]},
+    ]},
+  // ---- จุด 1: วัตถุดิบหมด ----
+  { intro:(ST)=>{const arr=[
+      b('min','panic','พี่! ตะไคร้หมดแล้ว แต่ออเดอร์ชาตะไคร้อีก 5 แก้วอยู่ ทำยังไงดี','kitchen',true),
+      b('narr',null,'ของหมดกลางช่วงขายดี มักเกิดตอนประมาทตัวเอง'),
+    ];
+    if(ST.stock<55)arr.push(b('mae','worried','สต๊อกเราน้อยกว่าที่ควรจะเป็นอยู่นะนี่'));
+    else arr.push(b('mae','neutral','ยังมีวัตถุดิบอื่น ๆ อยู่ ต้องหาทางใช้'));
+    arr.push(b('you',null,'วัตถุดิบหลักหมด ลูกค้ารอออเดอร์อยู่ — เธอจะ?'));return arr;},
+    choices:()=>[
+      {text:'รีบออกไปซื้อเองทันที',dom:'R',eff:()=>{S.stock+=25;S.cash-=8;S.fatigue+=8;},out:()=>[b('min','relieved','พี่วิ่งซื้อกลับมา ช้านิดหน่อยแต่ได้ของ')]},
+      {text:'คำนวณว่าของที่เหลือทำได้กี่ออเดอร์',dom:'I',eff:()=>{S.knowRoot=true;},out:()=>[b('min','brave','รู้ชัดแล้วว่ารับได้อีกกี่แก้ว ไม่เสียลูกค้าเกิน')]},
+      {text:'ดัดแปลงสูตร ทำเมนูพิเศษจากวัตถุดิบที่มี',dom:'A',eff:()=>{S.rep+=5;S.cash+=5;},out:()=>[b('min','relieved','ลูกค้าชอบเมนูแก้ขัดมากกว่าที่คิด!')]},
+      {text:'บอกลูกค้าตรง ๆ พร้อมเสนอเมนูทดแทน',dom:'S',eff:()=>S.rep+=4,out:()=>[b('min','relieved','ลูกค้าโอเค เขาชอบที่เราพูดตรง ๆ')]},
+      {text:'ตัดสินใจหยุดรับออเดอร์เมนูนั้นชั่วคราว',dom:'E',eff:()=>{S.rep-=3;},out:()=>[b('min','neutral','ตัดสินใจเร็ว ป้องกันปัญหาลูกโซ่')]},
+      {text:'เช็กสต๊อกทั้งหมด วางแผนสั่งของใหม่',dom:'C',eff:()=>S.stock+=10,out:()=>[b('min','brave','รู้แล้วว่าต้องสั่งอะไรเพิ่ม ไม่ขาดอีก')]},
+    ]},
+  // ---- จุด 2: ลูกค้าโวย ----
+  { intro:(ST)=>{const arr=[
+      b('min','panic','พี่! โต๊ะสี่โวยเสียงดังมาก บอกว่ารอนานเกินไปและออเดอร์ผิด','floor',true),
+      b('narr',null,'บรรยากาศตึงขึ้น คนโต๊ะอื่นเริ่มมองมา'),
+    ];
+    if(ST.rep<55)arr.push(b('mae','worried','ร้านเราต้องระวังนะ ตอนนี้ชื่อเสียงไม่แน่น'));
+    else arr.push(b('mae','neutral','ลูกค้ารายนี้อาจแค่หิวหรือเหนื่อย ค่อย ๆ คุย'));
+    arr.push(b('you',null,'ลูกค้าไม่พอใจและกำลังพูดเสียงดัง — เธอจะ?'));return arr;},
+    choices:()=>[
+      {text:'เข้าไปแก้ปัญหาทันที ทำออเดอร์ใหม่เลย',dom:'R',eff:()=>{S.cash-=5;S.rep+=8;},out:()=>[b('min','relieved','พี่จัดการเร็ว ลูกค้ายิ้มได้แล้ว')]},
+      {text:'ฟังก่อนทุกอย่าง ไล่หาว่าเกิดอะไรจริง ๆ',dom:'I',eff:()=>{S.knowRoot=true;S.rep+=5;},out:()=>[b('min','relieved','ฟังจนเข้าใจ แก้ได้ตรงจุดเลย')]},
+      {text:'หาวิธีชดเชยสร้างสรรค์ที่ทำให้ประทับใจ',dom:'A',eff:()=>{S.cash-=4;S.rep+=9;},out:()=>[b('min','relieved','ลูกค้าโพสต์ชมเรื่องนี้ด้วยนะพี่!')]},
+      {text:'แสดงความเห็นใจ ขอโทษอย่างจริงใจ',dom:'S',eff:()=>S.rep+=7,out:()=>[b('min','relieved','แค่รู้สึกว่ามีคนเข้าใจ ลูกค้าใจเย็นลงเลย')]},
+      {text:'ตัดสินใจชัด ๆ ว่าจะชดเชยอะไร บอกตรง ๆ',dom:'E',eff:()=>S.rep+=5,out:()=>[b('min','neutral','ชัดเจน ลูกค้ารับรู้ ปิดเรื่องได้เลย')]},
+      {text:'จดบันทึกปัญหาไว้ ป้องกันไม่ให้เกิดซ้ำ',dom:'C',eff:()=>{S.rep+=3;},out:()=>[b('min','brave','บันทึกไว้แล้ว ทีมรู้ทุกคน ไม่พลาดอีก')]},
+    ]},
+  // ---- จุด 3: ทีมทะเลาะ ----
+  { intro:(ST)=>{const arr=[
+      b('min','panic','พี่! มิ้งกับต้อมเถียงกันอยู่หลังร้าน ดูหนักมากเลย ทำไงดี','backroom',false),
+      b('narr',null,'ทีมถูกกดดันมาตั้งแต่เช้า ความตึงเครียดเริ่มระเบิด'),
+    ];
+    if(ST.teamMood<50)arr.push(b('mae','worried','ขวัญทีมต่ำอยู่แล้ว เรื่องนี้จะยิ่งหนักขึ้น'));
+    else arr.push(b('mae','neutral','ถ้าจัดการเร็ว จะไม่ลามออกมาหน้าร้าน'));
+    arr.push(b('you',null,'ทีมกำลังขัดแย้งกัน — เธอจะรับมืออย่างไร?'));return arr;},
+    choices:()=>[
+      {text:'แยกทั้งสองออกมา กลับไปทำงานก่อน',dom:'R',eff:()=>{S.teamMood-=3;},out:()=>[b('min','neutral','แยกได้ แต่ทั้งคู่ยังดูไม่โอเค')]},
+      {text:'คุยทีละคน ไล่หาว่าเรื่องจริงคืออะไร',dom:'I',eff:()=>{S.knowRoot=true;S.teamMood+=5;},out:()=>[b('min','relieved','เข้าใจแล้วว่าทะเลาะเพราะอะไร แก้ได้ตรงจุด')]},
+      {text:'หาทางออกที่ทำให้ทั้งคู่รู้สึกว่าได้รับการดูแล',dom:'A',eff:()=>S.teamMood+=8,out:()=>[b('min','relieved','ทั้งคู่หายโกรธ บรรยากาศดีขึ้นมาก')]},
+      {text:'รับฟังความรู้สึกของทั้งสองฝ่ายก่อน',dom:'S',eff:()=>S.teamMood+=7,out:()=>[b('min','relieved','ทั้งคู่รู้สึกว่าถูกได้ยิน ค่อย ๆ ผ่อนคลายลง')]},
+      {text:'ประกาศข้อตกลงชัด ๆ ให้ทุกคนปฏิบัติตาม',dom:'E',eff:()=>S.teamMood+=5,out:()=>[b('min','brave','มีกฎชัด ทุกคนรู้ว่าทำอะไรได้ไม่ได้')]},
+      {text:'เขียนกฎทีมเป็นลายลักษณ์อักษร',dom:'C',eff:()=>S.teamMood+=4,out:()=>[b('min','brave','มีอ้างอิงชัดเจน ปัญหาแบบนี้จะน้อยลง')]},
+    ]},
+  // ---- จุด 4: เครื่องชงกาแฟเสีย ----
+  { intro:(ST)=>{const arr=[
+      b('min','panic','พี่! เครื่องชงกาแฟดับไปเลย ลูกค้าสั่งกาแฟรอกันอยู่หลายโต๊ะ','counter',true),
+      b('narr',null,'เสียงคลิ๊ก ๆ ดับ เครื่องไม่ตอบสนอง'),
+    ];
+    if(ST.cash<40)arr.push(b('mae','worried','ซ่อมใหญ่ตอนนี้แพงมากนะ เงินสดเราน้อยด้วย'));
+    else arr.push(b('mae','neutral','ตรวจดูก่อน บางทีแค่สายไฟหลวม'));
+    arr.push(b('you',null,'เครื่องหลักใช้ไม่ได้ — เธอจะทำอะไร?'));return arr;},
+    choices:()=>[
+      {text:'ลองซ่อมเบื้องต้นเองก่อน',dom:'R',eff:()=>{},out:()=>[b('min','brave','แก้ง่ายกว่าที่คิด สายไฟหลวม เปิดได้แล้ว!')]},
+      {text:'วินิจฉัยหาต้นเหตุก่อนแตะอะไร',dom:'I',eff:()=>{S.knowRoot=true;},out:()=>[b('min','brave','รู้แน่ว่าเสียตรงไหน เรียกช่างได้ถูกจุด')]},
+      {text:'หาวิธีชงกาแฟสำรองอื่นได้ชั่วคราว',dom:'A',eff:()=>{S.cash+=4;S.rep+=3;},out:()=>[b('min','relieved','ลูกค้าได้กาแฟ ต่างแต่ยังอร่อย')]},
+      {text:'แจ้งลูกค้าอย่างสุภาพ เสนอเมนูอื่นทดแทน',dom:'S',eff:()=>S.rep+=5,out:()=>[b('min','relieved','ลูกค้าขอบคุณที่บอกตรง ๆ ไม่โกรธ')]},
+      {text:'ตัดสินใจเรียกช่างหรือหยุดขายกาแฟชั่วคราว',dom:'E',eff:()=>{S.rep-=2;S.cash-=5;},out:()=>[b('min','neutral','ตัดสินใจชัด ปัญหาไม่ยืดเยื้อ')]},
+      {text:'ตรวจระบบทั้งหมดว่ามีอะไรผิดปกติอีกไหม',dom:'C',eff:()=>{},out:()=>[b('min','brave','ตรวจครบ พบว่าระบบไฟไม่เสถียร ป้องกันได้')]},
+    ]},
+  // ---- จุด 5: รีวิวดราม่าโซเชียล ----
+  { intro:(ST)=>{const arr=[
+      b('min','panic','พี่! มีคนโพสต์รีวิวร้านเราในทวิตเตอร์ บอกว่าช้ามากและพนักงานไม่เป็นมิตร คนแชร์เต็มเลย','office',true),
+      b('narr',null,'โทรศัพท์สั่น แจ้งเตือนเต็ม บางคนที่ยังไม่รู้จักร้านก็กำลังถามกันอยู่'),
+    ];
+    if(ST.rep<50)arr.push(b('mae','worried','ชื่อเสียงร้านเราไม่แน่นอยู่แล้ว เรื่องนี้หนักมาก'));
+    else arr.push(b('mae','neutral','ถ้าตอบดี เรื่องนี้อาจกลายเป็นโอกาสก็ได้'));
+    arr.push(b('you',null,'รีวิวลบกำลังแพร่ออกไป — เธอจะทำอะไร?'));return arr;},
+    choices:()=>[
+      {text:'ตอบกลับรีวิวทันที ชี้แจงข้อเท็จจริง',dom:'R',eff:()=>S.rep+=5,out:()=>[b('min','brave','ตอบเร็ว คนเห็นว่าเราใส่ใจ')]},
+      {text:'อ่านรีวิวซ้ำ ๆ วิเคราะห์ว่ามีมูลความจริงไหม',dom:'I',eff:()=>{S.knowRoot=true;S.rep+=4;},out:()=>[b('min','brave','พบว่ามีส่วนจริง แก้ได้ตรงจุดเลย')]},
+      {text:'สร้าง content ตอบโต้อย่างสร้างสรรค์ แสดงตัวตนร้าน',dom:'A',eff:()=>S.rep+=8,out:()=>[b('min','relieved','คนแชร์ content เราต่อ บอกว่าร้านน่ารัก!')]},
+      {text:'ติดต่อลูกค้าโดยตรง แสดงความใส่ใจ',dom:'S',eff:()=>S.rep+=7,out:()=>[b('min','relieved','ลูกค้าอัปเดต รีวิวว่าได้รับการดูแลดี')]},
+      {text:'ตัดสินใจว่าจะสื่อสารต่อสาธารณะอย่างไร บอกทีม',dom:'E',eff:()=>S.teamMood+=3,out:()=>[b('min','brave','ทีมรู้ทิศทาง ตอบสอดคล้องกัน')]},
+      {text:'จัดทำนโยบายจัดการรีวิวเป็นระบบ',dom:'C',eff:()=>{},out:()=>[b('min','brave','มีระบบแล้ว ครั้งหน้าจัดการได้เร็วกว่านี้')]},
+    ]},
+  // ---- จุด 6: กลุ่มใหญ่ walk-in ----
+  { intro:(ST)=>{const arr=[
+      b('min','panic','พี่! มีกลุ่มนักท่องเที่ยว 15 คน เดินเข้ามาเลย ไม่ได้จองมา จะรับได้ไหม','floor',false),
+      b('narr',null,'กลุ่มใหญ่พร้อมเปย์ แต่ครัวยังสะสมออเดอร์ค้างอยู่'),
+    ];
+    if(ST.teamMood<50)arr.push(b('mae','worried','ทีมเหนื่อยอยู่ รับกลุ่มใหญ่ตอนนี้อาจไม่ไหว'));
+    else arr.push(b('mae','neutral','โอกาสดี แต่ต้องตัดสินใจเร็ว'));
+    arr.push(b('you',null,'กลุ่มใหญ่รอคำตอบ — เธอจะ?'));S.bigGroup=true;return arr;},
+    choices:()=>[
+      {text:'จัดโต๊ะและรับออเดอร์เดี๋ยวนั้นเลย',dom:'R',eff:()=>{S.cash+=15;S.fatigue+=10;},out:()=>[b('min','brave','ยุ่งมาก แต่ได้เงินคุ้มมาก!')]},
+      {text:'ประเมินก่อนว่าครัวรับได้ไหวไหม',dom:'I',eff:()=>{},out:()=>[b('min','brave','วิเคราะห์แล้วรับได้ แค่ต้องจัดการดี')]},
+      {text:'สร้างประสบการณ์พิเศษให้กลุ่มนี้รู้สึก VIP',dom:'A',eff:()=>{S.rep+=8;S.cash+=10;},out:()=>[b('min','relieved','กลุ่มนี้บอกต่อเยอะมาก!')]},
+      {text:'ต้อนรับดี อธิบายเวลารอโดยตรง',dom:'S',eff:()=>S.rep+=5,out:()=>[b('min','relieved','กลุ่มเข้าใจ และรอด้วยใจดี')]},
+      {text:'ตัดสินใจเลยว่ารับหรือขอจองล่วงหน้า',dom:'E',eff:()=>{},out:()=>[b('min','neutral','ชัดเจน ไม่เสียเวลาลังเล')]},
+      {text:'จัดที่นั่งและระบบออเดอร์สำหรับกลุ่มใหญ่',dom:'C',eff:()=>{S.cash+=12;S.fatigue+=6;},out:()=>[b('min','brave','มีระบบ กลุ่มนี้ไม่วุ่นวายเลย')]},
+    ]},
+  // ---- จุด 7: บัญชีไม่ตรง ----
+  { intro:(ST)=>{const arr=[
+      b('min','sad','พี่ ทำบัญชีรายวันแล้ว เงินขาดไป 500 บาท ไม่รู้ว่าผิดพลาดตรงไหน','office',false),
+      b('narr',null,'ตัวเลขไม่ตรง ทำให้ใจเสียกว่าปัญหาอื่น ๆ'),
+    ];
+    if(ST.cash<45)arr.push(b('mae','worried','เงินสดน้อยอยู่แล้ว ต้องหาให้เจอ'));
+    else arr.push(b('mae','neutral','500 บาทไม่มาก แต่ต้องรู้สาเหตุ ไม่งั้นจะซ้ำ'));
+    arr.push(b('you',null,'บัญชีขาด 500 บาท — เธอจะจัดการยังไง?'));return arr;},
+    choices:()=>[
+      {text:'นั่งไล่เช็กใบเสร็จทุกใบด้วยตัวเอง',dom:'R',eff:()=>{S.knowRoot=true;},out:()=>[b('min','relieved','เจอแล้ว คิดเงินผิดในออเดอร์ตอนบ่าย')]},
+      {text:'วิเคราะห์รายการที่น่าสงสัย หาจุดผิดพลาด',dom:'I',eff:()=>{S.knowRoot=true;S.cash+=3;},out:()=>[b('min','brave','วิเคราะห์เป็นระบบ เจอต้นเหตุชัดเลย')]},
+      {text:'ลองวิธีเช็กความผิดพลาดแบบใหม่',dom:'A',eff:()=>{},out:()=>[b('min','brave','วิธีใหม่เวิร์กกว่าเดิม นำมาใช้ต่อได้เลย')]},
+      {text:'คุยกับทีมด้วยความเข้าใจ ไม่ตำหนิ',dom:'S',eff:()=>S.teamMood+=5,out:()=>[b('min','relieved','ทีมรู้สึกปลอดภัย ยอมรับความผิดพลาดได้')]},
+      {text:'กำหนดผู้รับผิดชอบและมาตรการชัด ๆ',dom:'E',eff:()=>{},out:()=>[b('min','brave','ชัดเจน ทุกคนรู้หน้าที่ตัวเอง')]},
+      {text:'ออกแบบระบบบัญชีให้รัดกุมขึ้น',dom:'C',eff:()=>{},out:()=>[b('min','brave','ระบบใหม่เช็กตัวเองได้ทันที ไม่ขาดอีก')]},
+    ]},
+  // ---- จุด 8: เมนูใหม่? ----
+  { intro:(ST)=>{const arr=[
+      b('mae','neutral','เดือนหน้าจะมีมะม่วงน้ำดอกไม้ สด ๆ อยากลองเปิดเมนูพิเศษตามฤดูกาลไหม','kitchen',false),
+      b('min','neutral','ฟังดูน่าสนใจมาก แต่ก็ต้องเตรียมตัวนะ'),
+    ];
+    if(ST.rep>60)arr.push(b('mae','happy','ลูกค้าประจำถามเรื่องเมนูใหม่อยู่เรื่อย ๆ เลยนะ'));
+    else arr.push(b('mae','worried','ชื่อเสียงยังไม่แน่น ถ้าเมนูใหม่ไม่ดีอาจแย่ลง'));
+    arr.push(b('you',null,'เปิดเมนูใหม่หรือยัง — เธอคิดยังไง?'));return arr;},
+    choices:()=>[
+      {text:'ทดลองทำให้ทีมชิมทันทีเลย',dom:'R',eff:()=>{S.cash-=4;S.teamMood+=5;},out:()=>[b('min','relieved','ทีมชอบมาก และให้ feedback ที่ดีด้วย')]},
+      {text:'วิเคราะห์ข้อมูลลูกค้าและคู่แข่งก่อน',dom:'I',eff:()=>{S.knowRoot=true;},out:()=>[b('min','brave','ข้อมูลชัดมาก รู้ว่าอะไรจะขายได้')]},
+      {text:'ออกแบบเมนูให้แตกต่างจากร้านอื่นในย่าน',dom:'A',eff:()=>{S.rep+=7;S.cash+=5;},out:()=>[b('min','relieved','ลูกค้าถ่ายรูปลงโซเชียลเพราะเมนูสวยมาก!')]},
+      {text:'ถามลูกค้าประจำและทีมว่าอยากได้อะไร',dom:'S',eff:()=>{S.rep+=5;S.teamMood+=4;},out:()=>[b('min','relieved','ลูกค้าดีใจมากที่ถูกถาม ทีมก็สนุกด้วย')]},
+      {text:'ตัดสินใจเลยว่าจะเปิดเมนูไหน เริ่มวางแผน',dom:'E',eff:()=>{},out:()=>[b('min','brave','ตัดสินใจเร็ว เริ่มเตรียมได้ทันที')]},
+      {text:'ทำแผน timeline ทดสอบเมนูอย่างเป็นขั้น',dom:'C',eff:()=>S.cash+=3,out:()=>[b('min','brave','มีแผนชัด ลดความเสี่ยงเรื่องต้นทุนได้')]},
+    ]},
+  // ---- จุด 9: ของใกล้เสีย ----
+  { intro:(ST)=>{const arr=[
+      b('min','sad','พี่ ไปเช็กสต๊อกแล้ว นมสดหมดอายุพรุ่งนี้ มีอีกหลายกล่อง ทำยังไงดี','storage',true),
+      b('narr',null,'ของเสียหมายถึงต้นทุนที่หายไป และความเสี่ยงด้านสุขภาพถ้าจัดการผิด'),
+    ];
+    if(ST.stock<50)arr.push(b('mae','worried','สต๊อกน้อยอยู่แล้ว เสียอีกจะหนักมาก'));
+    else arr.push(b('mae','neutral','จัดการถูกต้อง ลูกค้าปลอดภัย ทีมก็สบายใจ'));
+    arr.push(b('you',null,'ของใกล้หมดอายุ — เธอจะจัดการยังไง?'));return arr;},
+    choices:()=>[
+      {text:'ทิ้งทันทีและสั่งของใหม่',dom:'R',eff:()=>{S.stock-=10;S.cash-=6;},out:()=>[b('min','neutral','ปลอดภัยสุด ๆ แต่สูญเสียไปนิดหน่อย')]},
+      {text:'ตรวจสอบทั้งสต๊อก ประเมินความเสี่ยงทุกรายการ',dom:'I',eff:()=>{S.knowRoot=true;},out:()=>[b('min','brave','รู้แน่ว่าอะไรยังใช้ได้ ไม่เสียโดยไม่จำเป็น')]},
+      {text:'ดัดแปลงทำเมนูพิเศษจากของที่เหลือ',dom:'A',eff:()=>{S.cash+=6;S.stock-=8;},out:()=>[b('min','relieved','เมนู "วันนี้เท่านั้น" ลูกค้าชอบมาก')]},
+      {text:'แจ้งทีมตรง ๆ อธิบายเหตุผลด้านสุขอนามัย',dom:'S',eff:()=>S.teamMood+=4,out:()=>[b('min','relieved','ทีมเข้าใจ ไม่เกิดความสับสน')]},
+      {text:'กำหนดนโยบายหมดอายุชัดเจน ทุกคนรู้',dom:'E',eff:()=>{},out:()=>[b('min','brave','มีนโยบายชัด ปัญหานี้ไม่เกิดซ้ำ')]},
+      {text:'ออกแบบระบบ FIFO ให้สต๊อกหมุนถูกต้อง',dom:'C',eff:()=>S.stock+=5,out:()=>[b('min','brave','ระบบดีมาก ของไม่หมดอายุอีกต่อไป')]},
+    ]},
+  // ---- จุด 10: ทีมหมดไฟ ----
+  { intro:(ST)=>{const arr=[
+      b('min','sad','พี่... มิ้งกับต้อมพูดว่าเหนื่อยมากแล้ว ไม่ค่อยอยากมางาน เราทำยังไงดี','backroom',false),
+      b('narr',null,'ทีมที่หมดแรงยิ้มไม่ออก และลูกค้ารับรู้ได้'),
+    ];
+    if(ST.fatigue>55)arr.push(b('mae','worried','เราไม่ได้พักกันมาสักพักแล้ว เรื่องนี้หนักมากนะ'));
+    else arr.push(b('mae','neutral','ถ้าจัดการตอนนี้ ยังแก้ได้ทัน'));
+    arr.push(b('you',null,'ทีมกำลังหมดพลังงาน — เธอจะทำอะไร?'));return arr;},
+    choices:()=>[
+      {text:'ลงมาช่วยทำงานด้วยตัวเองเพื่อแบ่งเบา',dom:'R',eff:()=>{S.teamMood+=7;S.fatigue+=5;},out:()=>[b('min','relieved','เห็นพี่ลงมาช่วย ทีมใจชื้นขึ้นมาก')]},
+      {text:'หาว่าทำไมทีมถึงหมดไฟ ต้นเหตุคืออะไร',dom:'I',eff:()=>{S.knowRoot=true;S.teamMood+=4;},out:()=>[b('min','brave','รู้ต้นเหตุแล้ว แก้ได้ตรงจุดกว่า')]},
+      {text:'จัดสิ่งประหลาดใจเล็ก ๆ ให้ทีมรู้สึกดีขึ้น',dom:'A',eff:()=>{S.teamMood+=9;S.cash-=3;},out:()=>[b('min','relieved','ทีมยิ้มกันเลย เปลี่ยนบรรยากาศได้มาก')]},
+      {text:'นั่งคุยกับทุกคน รับฟังความรู้สึก',dom:'S',eff:()=>{S.teamMood+=8;},out:()=>[b('min','relieved','แค่รู้สึกว่าถูกได้ยิน ทุกคนดีขึ้นเลย')]},
+      {text:'ประกาศว่าจะเปลี่ยนแปลงอะไรบ้างชัด ๆ',dom:'E',eff:()=>S.teamMood+=6,out:()=>[b('min','brave','มีความหวัง ทีมรู้ว่าสิ่งที่ดีขึ้นกำลังมา')]},
+      {text:'วางแผนกะและภาระงานใหม่ให้สมดุลกว่า',dom:'C',eff:()=>{S.teamMood+=7;S.fatigue-=10;},out:()=>[b('min','brave','ตารางใหม่ยุติธรรมกว่า ทีมอยู่ได้นานขึ้น')]},
+    ]},
+  // ---- จุด 11: ปิดร้าน ----
+  { intro:(ST)=>[
+      b('mae','happy','วันนี้ผ่านมาได้นะ ร้านยังยืนอยู่ ทีมยังอยู่ด้วยกัน','ending',false),
+      b('min','relieved','หนักนิดหน่อยแต่โอเคนะพี่ วันนี้เรียนรู้เยอะมาก'),
+      b('narr',null,'ใกล้เวลาปิดร้าน บรรยากาศเงียบลง'),
+      b('you',null,'วันวุ่นกำลังจบลง — เธอจะทำอะไรเป็นอย่างสุดท้าย?'),
+    ],
+    choices:()=>[
+      {text:'ลงมือทำความสะอาดเตรียมพร้อมสำหรับพรุ่งนี้',dom:'R',eff:()=>{},out:()=>[b('min','brave','พี่ทำก่อนเลย ทีมเดินตามมาเอง')]},
+      {text:'ทบทวนว่าวันนี้เรียนรู้อะไรและปรับปรุงอะไรได้',dom:'I',eff:()=>{},out:()=>[b('min','brave','จดไว้แล้ว พรุ่งนี้จะดีกว่านี้')]},
+      {text:'วางแผนสิ่งใหม่ที่จะลองพรุ่งนี้',dom:'A',eff:()=>S.rep+=3,out:()=>[b('min','relieved','ไอเดียใหม่มาเสมอ พี่ไม่หยุดคิด')]},
+      {text:'ถามทุกคนในทีมว่าวันนี้เป็นยังไงบ้าง',dom:'S',eff:()=>S.teamMood+=5,out:()=>[b('min','relieved','ทุกคนยิ้มเลย พอรู้ว่ามีคนสนใจ')]},
+      {text:'สรุปและมอบหมายงานพรุ่งนี้ให้ชัดเจน',dom:'E',eff:()=>S.teamMood+=3,out:()=>[b('min','brave','ทุกคนรู้แผน พรุ่งนี้เริ่มได้เลย')]},
+      {text:'ตรวจสอบทุกอย่างให้เรียบร้อยก่อนออกจากร้าน',dom:'C',eff:()=>{},out:()=>[b('min','relieved','ครบทุกอย่าง ปิดได้อย่างสบายใจ')]},
+    ]},
+];
+
+/* FLOW */
+assertDomains();
+$("startBtn").onclick=()=>{initAudio();if(actx&&actx.state==='suspended')actx.resume();
+  $("start").classList.remove('show');updateHUD();runCrisis(0);};
+
+function runCrisis(i){
+  if(i>=CRISES.length){ending();return;}
+  showEventImage(i);
+  const prompt=i===9?'ของใกล้เสีย เธอจะ?':'เธอจะทำอะไร?';
+  play(CRISES[i].intro(S),()=>ask(prompt,CRISES[i].choices(),()=>afterChoice(i)));}
+
+function afterChoice(i){
+  if(i===9){runDilemma(()=>runCrisis(10));return;}
+  if(i===5){showCheckpoint('— ครึ่งแรกผ่านแล้ว —',
+    `ผ่านมา 6 สถานการณ์แล้ว แนวที่โน้มไปตอนนี้: <b style="color:${TYPE[analyze().code[0]].c}">${TYPE[analyze().code[0]].th}</b> — ยังมีอีก 6 สถานการณ์`,
+    ()=>runCrisis(6));return;}
+  if(i===7){showCheckpoint('— ช่วงปิดร้านใกล้แล้ว —',
+    `แนวหลักตอนนี้: <b style="color:${TYPE[analyze().code[0]].c}">${TYPE[analyze().code[0]].th}</b> — เหลืออีก 4 สถานการณ์สุดท้าย`,
+    ()=>runCrisis(8));return;}
+  runCrisis(i+1);}
+
+function showCheckpoint(head,html,next){
+  $("cpHead").textContent=head;$("cpText").innerHTML=html;
+  $("cp").classList.add('show');
+  $("cpNext").onclick=()=>{$("cp").classList.remove('show');next();};}
+
+function runDilemma(next){
+  play([
+    b('mae','worried','สต๊อกนมสดเหลือพอทำได้ชุดเดียว และมีสองความต้องการเข้ามาพร้อมกัน','storage',true),
+    b('min','sad','ลูกค้าเจ้าประจำที่จองไว้ตั้งแต่เช้ากำลังรอค่ะ'),
+    b('mae','neutral','แต่ถ้าทำเป็นเมนูพิเศษสวย ๆ ลงโซเชียล อาจดึงลูกค้าใหม่ได้มากกว่า'),
+  ],()=>{
+    $("dlgWrap").style.display='none';
+    const box=$("choices");box.innerHTML=`<div class="ask">เธอจะเลือกทำอะไรกับนมที่เหลือ?</div>`;
+    [['loyal','ทำให้ลูกค้าเจ้าประจำที่จองรอ (คนตรงหน้า)','ให้น้ำหนักกับความไว้วางใจของลูกค้าที่มีอยู่และคนตรงหน้า'],
+     ['social','ทำเมนูพิเศษถ่ายลงโซเชียลดึงลูกค้าใหม่ (อนาคตร้าน)','ให้น้ำหนักกับการเติบโตของร้านในระยะยาว']]
+    .sort(()=>Math.random()-.5).forEach(([k,label,note])=>{
+      const bt=document.createElement('button');bt.className='ch';bt.textContent=label;
+      bt.onclick=()=>{pick();valuesChoice={k,note};box.classList.remove('show');$("dlgWrap").style.display='block';
+        play([b('mae','neutral','...บันทึกการตัดสินใจแล้ว ไม่มีคำตอบถูกหรือผิด มีแต่คำตอบที่เป็นเธอ')],next);};
+      box.appendChild(bt);});
+    box.classList.add('show');});}
+
+/* SCORING */
+function analyze(){
+  const ranked=DIMS.slice().sort((a,b)=>tally[b]-tally[a]),code=ranked.slice(0,3);
+  const vals=DIMS.map(d=>tally[d]),diff=Math.max(...vals)-Math.min(...vals);
+  const primary=code[0],nb=[DIMS[(HEX[primary]+1)%6],DIMS[(HEX[primary]+5)%6]];
+  const secondary=code.slice(1).filter(d=>!nb.includes(d)),doors=nb.filter(d=>!code.includes(d));
+  return{code,diff,primary,secondary,doors,flat:diff<=1};}
+
+function hexSVG(size){const c=size/2,R=size*.34,ang=i=>(-90+60*i)*Math.PI/180,v=(i,r)=>[c+r*Math.cos(ang(i)),c+r*Math.sin(ang(i))];
+  const mx=Math.max(1,...DIMS.map(d=>tally[d])),pts=DIMS.map((d,i)=>v(i,R*Math.max(.12,tally[d]/mx)));
+  let s=`<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">`;
+  [.34,.67,1].forEach(g=>s+=`<polygon points="${DIMS.map((_,i)=>v(i,R*g).join(",")).join(" ")}" fill="none" stroke="#ffffff14"/>`);
+  s+=`<polygon points="${pts.map(p=>p.join(",")).join(" ")}" fill="#ff9d4d22" stroke="#ff9d4d" stroke-width="2.5" stroke-linejoin="round"/>`;
+  DIMS.forEach((d,i)=>{const[px,py]=pts[i],[lx,ly]=v(i,R+18);s+=`<circle cx="${px}" cy="${py}" r="5" fill="${TYPE[d].c}"/>
+    <text x="${lx}" y="${ly+4}" text-anchor="middle" font-size="13" font-weight="700" fill="${TYPE[d].c}">${d}</text>`;});
+  return s+`</svg>`;}
+
+function ending(){
+  ding();
+  const story=[];
+  story.push(b('mae','happy','วันนี้ร้านผ่านมาได้ ทีมยังอยู่ด้วยกัน ลูกค้ายังกลับมา','ending',false));
+  if(S.rep>65)story.push(b('min','relieved','ลูกค้าบอกว่าจะแนะนำเพื่อนมาด้วยนะพี่'));
+  else story.push(b('min','neutral','ยังมีอะไรที่ต้องแก้ไข แต่วันนี้เราพยายามแล้ว'));
+  if(valuesChoice)story.push(b('mae','neutral','การตัดสินใจที่สำคัญที่สุดวันนี้: '+valuesChoice.note));
+  story.push(b('mae','happy','อยากรู้ไหมว่าวันนี้บอกอะไรเกี่ยวกับตัวเธอบ้าง?'));
+  play(story,showResult);}
+
+function showResult(){
+  const r=analyze();$("dlgWrap").style.display='none';$("char").style.opacity=0;
+  const PROFILE={
+    R:{label:'สายลงมือทำ',desc:'เรียนรู้ผ่านการลงมือทำจริง เมื่อเจอปัญหาสัญชาตญาณแรกคือ "แก้เลย"'},
+    I:{label:'สายวิเคราะห์',desc:'ชอบเข้าใจว่า "ทำไม" ก่อนลงมือ สนุกกับการหาคำตอบ'},
+    A:{label:'สายสร้างสรรค์',desc:'มองหาวิธีใหม่ที่ไม่เหมือนใคร ชอบสร้างสิ่งที่คนอื่นยังไม่คิดถึง'},
+    S:{label:'สายดูแลคน',desc:'ใส่ใจคนรอบข้าง สุขที่ได้ช่วยเหลือ มีความสามารถในการสร้างความสัมพันธ์ที่ดี'},
+    E:{label:'สายนำและโน้มน้าว',desc:'กล้าตัดสินใจและขับเคลื่อนให้สิ่งต่าง ๆ เกิดขึ้นจริง'},
+    C:{label:'สายจัดระบบ',desc:'ชอบความเป็นระเบียบและแม่นยำ ทำงานเชื่อถือได้'},
+  };
+  const grpCard=(d,tag,dim)=>`
+    <div class="grp" style="${dim?'opacity:.6':''}">
+      <div class="gbar" style="background:${TYPE[d].c}"></div>
+      <div style="flex:1">
+        <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap">
+          <b>${GROUP[d].name}</b>
+          <span class="tag" style="background:${TYPE[d].c}22;color:${TYPE[d].c}">${tag}</span>
+        </div>
+        <div style="font-size:11px;color:#b09070;margin-top:2px">${GROUP[d].fac}</div>
+        <div style="font-size:10.5px;color:#c0a880;margin-top:2px">อาชีพ: ${GROUP[d].jobs}</div>
+        <div style="font-size:11px;color:#d0c8b8;margin-top:3px">
+          <span style="color:${TYPE[d].c}">แข็ง:</span> ${GROUP[d].strength} &nbsp;·&nbsp;
+          <span style="color:${TYPE[d].c}">พัฒนา:</span> ${GROUP[d].grow}
+        </div>
+      </div>
+    </div>`;
+  const topProfiles=r.code.slice(0,3).map(d=>`
+    <div style="padding:10px 0;border-top:1px solid #4e2a12">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <span style="font-size:11px;padding:2px 8px;border-radius:20px;background:${TYPE[d].c}22;color:${TYPE[d].c}">${TYPE[d].th}</span>
+        <b style="color:${TYPE[d].c}">${PROFILE[d].label}</b>
+      </div>
+      <div style="font-size:13px;color:#e8d8c8;line-height:1.6">${PROFILE[d].desc}</div>
+    </div>`).join('');
+  const reasonHTML=`
+    <div id="reasonBox" style="display:none;margin-top:8px"><div class="vnote">
+      <b style="color:var(--warm)">วิธีนับ</b><br>
+      เราดูว่าเธอ <em>ลงมือทำ</em> แบบไหนบ่อยสุดในแต่ละสถานการณ์ ไม่ใช่ถามว่า "คิดว่าตัวเองเป็นคนแบบไหน"<br><br>
+      จำนวนครั้งที่เลือก: ${DIMS.map(d=>`<span style="color:${TYPE[d].c}">${TYPE[d].th} ${tally[d]}</span>`).join(' · ')}<br><br>
+      ${r.flat?'เธอเลือกกระจายหลายแนว <b>เรื่องนี้ปกติมากสำหรับวัยนี้</b> ยังสำรวจได้เรื่อย ๆ':'เรียงจากมากสุด 3 อันดับแรกคือแนวที่โน้มไป'}
+    </div></div>
+    <button class="btn alt" onclick="const b=document.getElementById('reasonBox');b.style.display=b.style.display==='none'?'block':'none';this.textContent=b.style.display==='none'?'ดูเหตุผลการคำนวณ ▼':'ซ่อน ▲'">ดูเหตุผลการคำนวณ ▼</button>`;
+  const tcasFacs=[...new Set([r.primary,...r.secondary].flatMap(d=>GROUP[d].fac.split(' · ')))].slice(0,6);
+  const tcasHTML=`
+    <button class="btn alt" style="margin-top:6px" onclick="document.getElementById('tcasBox').style.display='block';this.style.display='none'">เช็กโอกาสติด (TCAS) ▶</button>
+    <div id="tcasBox" style="display:none" class="vnote">
+      <b style="color:var(--warm)">คณะที่น่าสำรวจ</b><br>
+      ${tcasFacs.map(f=>`• ${f}`).join('<br>')}
+      <br><br><span style="color:#b09070;font-size:10px">// 🔌 จุดเชื่อมจริงกับ TCAS calculator</span>
+    </div>`;
+  $("card").innerHTML=`
+    <div style="text-align:center;padding-bottom:8px">
+      <div class="codeword">วันนี้เธอโน้มเอียงไปทาง</div>
+      <div class="code">${r.code.map(d=>`<span style="color:${TYPE[d].c}">${d}</span>`).join('')}</div>
+      <div class="codeword">${r.code.map(d=>TYPE[d].th).join(' · ')}</div>
+      ${hexSVG(210)}
+    </div>
+    ${r.flat?`<div class="vnote">เธอเลือกกระจายหลายแนว <b>ปกติมากสำหรับวัยนี้</b> ใช้เป็นจุดเริ่มต้นสำรวจตัวเองต่อไป</div>`:''}
+    <div style="margin-bottom:8px">${topProfiles}</div>
+    <div>${grpCard(r.primary,'เข้ากันสูง')}${r.secondary.map(d=>grpCard(d,'น่าสำรวจ')).join('')}${r.doors.map(d=>grpCard(d,'ประตูข้างเคียง',true)).join('')}</div>
+    ${valuesChoice?`<div class="vnote" style="margin-top:8px"><b style="color:var(--warm)">ค่านิยมที่เผย</b> <span style="font-size:11px;color:#b09070">(วัดแยกจากความสนใจ)</span><br>${valuesChoice.note}</div>`:''}
+    ${reasonHTML}
+    ${tcasHTML}
+    <div class="fnote">นี่คือ "แนวที่เธอโน้มไป" จากสิ่งที่เลือกทำในเรื่อง ไม่ใช่คำตัดสินว่าเธอ "เป็น" คนแบบไหน · ยังไม่รวมความถนัดหรือคะแนนสอบ</div>
+    <button class="btn" id="again" style="margin-top:10px">เล่นใหม่</button>`;
+  $("result").classList.add('show');
+  // 🔌 จุดต่อระบบเก็บข้อมูลกลางในอนาคต (ส่ง RESULT ไป backend)
+  const RESULT={game:'cafe',ts:Date.now(),tally:{...tally},code:r.code,values:valuesChoice,log:behaviorLog};
+  console.log('RESULT',RESULT);
+  $("again").onclick=()=>location.reload();}
+</script>
+</body>
+</html>

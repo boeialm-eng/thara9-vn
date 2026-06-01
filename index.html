@@ -75,8 +75,9 @@
     border-radius:11px;padding:13px 18px;font-size:15px;cursor:pointer;width:100%;margin-top:9px;box-shadow:0 0 18px rgba(70,216,255,.2);}
   .btn:hover{background:rgba(70,216,255,.26);} .btn.alt{border-color:#2a4668;background:transparent;box-shadow:none;color:#9fd9f0;}
 
-  /* RESULT */
-  #result .box{overflow:auto;max-height:92vh;text-align:left;}
+  /* RESULT — position:fixed หลุดจาก #vn overflow:hidden ทำให้เลื่อนได้ */
+  #result{position:fixed;align-items:flex-start;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+  #result .box{overflow:visible;max-height:none;text-align:left;margin:20px auto;padding-bottom:28px;}
   .code{font-family:'Orbitron';font-weight:800;font-size:44px;letter-spacing:8px;text-align:center;}
   .codeword{font-size:12px;color:#7fa8c9;text-align:center;}
   .grp{display:flex;gap:10px;padding:9px 0;border-top:1px solid #2a4668;}
@@ -913,6 +914,9 @@ function showResult(){
     <button class="btn" id="again" style="margin-top:10px">เล่นใหม่</button>`;
 
   $("result").classList.add('show');
+  // 🔌 จุดต่อระบบเก็บข้อมูลกลางในอนาคต (ส่ง RESULT ไป backend)
+  const RESULT={game:'space',ts:Date.now(),tally:{...tally},code:r.code,values:valuesChoice,log:behaviorLog};
+  console.log('RESULT',RESULT);
   $("again").onclick=()=>location.reload();
 }
 </script>
