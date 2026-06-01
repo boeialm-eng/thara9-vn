@@ -177,8 +177,8 @@ let S={rep:70,cash:60,teamMood:70,stock:80,fatigue:20,minOk:true,knowRoot:false,
 const tally={R:0,I:0,A:0,S:0,E:0,C:0},behaviorLog=[];
 let valuesChoice=null,choiceT0=0;
 
-/* ============================================================ SVG ART */
-function faceMin(expr){
+/* ============================================================ SVG ART (fallback) */
+function faceMinSVG(expr){
   const E={
     neutral:{br:'M72 78 L90 78 M110 78 L128 78',eye:'norm',mo:'M88 108 Q100 113 112 108',ex:''},
     panic:  {br:'M70 70 L90 76 M110 76 L130 70',eye:'wide',mo:'M100 110 m-8 0 a8 8 0 1 0 16 0 a8 8 0 1 0 -16 0',ex:'<circle cx="126" cy="90" r="3" fill="#f9c8a8"/>'},
@@ -205,7 +205,7 @@ function faceMin(expr){
     ${E.ex}
   </svg>`;
 }
-function faceMae(expr){
+function faceMaeSVG(expr){
   const mo=expr==='happy'?'M86 110 Q100 122 114 110':expr==='worried'?'M88 114 Q100 108 112 114':'M88 110 Q100 116 112 110';
   const br=expr==='worried'?'M72 76 Q81 82 90 80 M110 80 Q119 76 128 74':'M72 78 L90 78 M110 78 L128 78';
   const extra=expr==='happy'?'<path d="M74 96 Q82 88 90 96" stroke="#4a2818" stroke-width="2.5" fill="none"/><path d="M110 96 Q118 88 126 96" stroke="#4a2818" stroke-width="2.5" fill="none"/>':'<circle cx="82" cy="94" r="5" fill="#4a2818"/><circle cx="118" cy="94" r="5" fill="#4a2818"/>';
@@ -214,12 +214,22 @@ function faceMae(expr){
     <ellipse cx="100" cy="96" rx="54" ry="60" fill="#e8c298"/>
     <path d="M48 90 Q52 34 100 32 Q148 34 152 90 Q148 64 100 60 Q52 64 48 90Z" fill="#5a3218"/>
     <path d="M48 98 Q44 78 52 64Z" fill="#5a3218"/>
-    <!-- Grey streaks -->
     <path d="M52 80 Q58 50 80 44" stroke="#9a8878" stroke-width="3" fill="none" opacity=".6"/>
     ${extra}
     <path d="${br}" stroke="#4a2818" stroke-width="3" fill="none" stroke-linecap="round"/>
     <path d="${mo}" stroke="#a06060" stroke-width="3.5" fill="none" stroke-linecap="round"/>
   </svg>`;
+}
+function replaceWithSVG(el,who,expr){
+  const tmp=document.createElement('div');
+  tmp.innerHTML=who==='min'?faceMinSVG(expr):faceMaeSVG(expr);
+  if(el.parentNode)el.parentNode.replaceChild(tmp.firstChild,el);
+}
+function faceMin(expr){return `<img class="sprite" src="assets/mint_${expr}.png" onerror="replaceWithSVG(this,'min','${expr}')" alt="">`;}
+function faceMae(expr){return `<img class="sprite" src="assets/owner_${expr}.png" onerror="replaceWithSVG(this,'mae','${expr}')" alt="">`;}
+function preloadAssets(){
+  ['mint_neutral','mint_panic','mint_relieved','mint_sad','mint_brave',
+   'owner_neutral','owner_happy','owner_worried'].forEach(n=>{const i=new Image();i.src=`assets/${n}.png`;});
 }
 function bgScene(loc){
   const W=540,H=960;
@@ -294,20 +304,28 @@ function bgScene(loc){
   return `<svg width="100%" height="100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid slice" style="position:absolute;inset:0">${sc[loc]||sc.counter}</svg>`;
 }
 
-/* AUDIO */
+/* AUDIO — โทนคาเฟ่อบอุ่น */
 let actx,master,muted=false;
 function initAudio(){if(actx)return;actx=new(window.AudioContext||window.webkitAudioContext)();
-  master=actx.createGain();master.gain.value=.42;master.connect(actx.destination);
-  const g=actx.createGain();g.gain.value=.04;g.connect(master);
-  const o=actx.createOscillator(),o2=actx.createOscillator();o.type=o2.type='sine';o.frequency.value=48;o2.frequency.value=48.3;
-  o.connect(g);o2.connect(g);o.start();o2.start();}
-function tone(f,d,t='sine',v=.15,delay=0){if(!actx||muted)return;const s=actx.currentTime+delay,o=actx.createOscillator(),g=actx.createGain();
-  o.type=t;o.frequency.value=f;g.gain.setValueAtTime(.0001,s);g.gain.linearRampToValueAtTime(v,s+.01);g.gain.exponentialRampToValueAtTime(.0001,s+d);
-  o.connect(g);g.connect(master);o.start(s);o.stop(s+d+.03);}
-const blip=()=>tone(680,.05,'square',.05);
-const pick=()=>tone(820,.08,'triangle',.12);
-const ding=()=>[440,550,660].forEach((f,i)=>tone(f,.25,'sine',.13,i*.08));
-$("mute").onclick=()=>{muted=!muted;if(master)master.gain.value=muted?0:.42;$("mute").textContent=muted?'♪̶':'♪';};
+  master=actx.createGain();master.gain.value=.38;master.connect(actx.destination);
+  // ambient chord: C3-E3-G3 นุ่มอุ่น เหมือนนั่งในคาเฟ่
+  const bg=actx.createGain();bg.gain.value=.018;bg.connect(master);
+  [[130.8,'sine'],[164.8,'sine'],[196,'sine']].forEach(([f])=>{
+    const o=actx.createOscillator();o.type='sine';o.frequency.value=f;o.connect(bg);o.start();});}
+function tone(f,d,t='sine',v=.12,delay=0){if(!actx||muted)return;const s=actx.currentTime+delay,o=actx.createOscillator(),g=actx.createGain();
+  o.type=t;o.frequency.value=f;g.gain.setValueAtTime(.0001,s);g.gain.linearRampToValueAtTime(v,s+.015);g.gain.exponentialRampToValueAtTime(.0001,s+d);
+  o.connect(g);g.connect(master);o.start(s);o.stop(s+d+.05);}
+// blip: sine นุ่ม เหมือนปากกาแตะกระดาษ
+const blip=()=>tone(420,.04,'sine',.055);
+// pick: tap อุ่น ๆ
+const pick=()=>tone(520,.07,'sine',.11);
+// ding: C major arpeggio อบอุ่นสดใส
+const ding=()=>[261,330,392,523].forEach((f,i)=>tone(f,.28,'sine',.11,i*.09));
+// doorbell: ติ๊งหน่อง สองโน้ต (ลูกค้าเข้าร้าน)
+const doorbell=()=>{tone(880,.18,'sine',.13);tone(784,.26,'sine',.09,.2);};
+// cafeAlert: เตือนนุ่ม ๆ (ของหมด/เครื่องเสีย)
+const cafeAlert=()=>{tone(600,.1,'triangle',.09);tone(600,.1,'triangle',.07,.22);};
+$("mute").onclick=()=>{muted=!muted;if(master)master.gain.value=muted?0:.38;$("mute").textContent=muted?'♪̶':'♪';};
 
 /* DIALOGUE RUNTIME */
 let beats=[],bi=0,typing=false,typeTimer=null,afterBeats=null,curBG=null;
@@ -369,7 +387,13 @@ function fireFlicker(){if(_noFX()||Date.now()<_flCd)return;_flCd=Date.now()+1400
   setTimeout(()=>o.classList.remove('flicker'),1300);}
 function triggerFX(b){if(!b.bg)return;
   if(b.alert&&['counter','kitchen','floor'].includes(b.bg)){setTimeout(fireShake,50);setTimeout(fireFlicker,130);}
-  if(b.fx==='shake')setTimeout(fireShake,50);if(b.fx==='flicker')setTimeout(fireFlicker,130);}
+  // เสียงคาเฟ่ตามฉาก
+  if(b.alert&&b.bg==='floor')setTimeout(doorbell,80);           // ลูกค้าเดินเข้า
+  if(b.alert&&['counter','kitchen'].includes(b.bg))setTimeout(cafeAlert,120); // วุ่น/ของหมด
+  if(b.fx==='shake')setTimeout(fireShake,50);
+  if(b.fx==='flicker')setTimeout(fireFlicker,130);
+  if(b.fx==='doorbell')setTimeout(doorbell,50);
+  if(b.fx==='alert')setTimeout(cafeAlert,50);}
 function enterCalmMode(){$("vn").classList.remove('shake');$("fxOverlay").classList.remove('flicker');$("bg").classList.add('calm-mode');}
 function exitCalmMode(){$("bg").classList.remove('calm-mode');}
 function updateAtmosphere(){$("crackOverlay").classList.toggle('active',S.rep<40);$("dimOverlay").classList.toggle('active',S.cash<30);}
@@ -593,6 +617,7 @@ const CRISES=[
 
 /* FLOW */
 assertDomains();
+preloadAssets();
 $("startBtn").onclick=()=>{initAudio();if(actx&&actx.state==='suspended')actx.resume();
   $("start").classList.remove('show');updateHUD();runCrisis(0);};
 
