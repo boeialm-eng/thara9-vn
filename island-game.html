@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+<title>เกาะสุดขอบ · เอาตัวรอด</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Mali:wght@500;600;700&family=Orbitron:wght@600;800&family=Noto+Sans+Thai:wght@400;600;700&family=Share+Tech+Mono&display=swap');
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;}
+  :root{--ink:#f0fff4;--glow:#40e8b0;--pla:#7dd87a;--guide:#e8c040;--warn:#ff5d70;}
+  html,body{height:100%;}
+  body{font-family:'Noto Sans Thai',sans-serif;background:#020a06;color:var(--ink);overflow:hidden;}
+  #vn{position:relative;max-width:540px;height:100vh;margin:0 auto;overflow:hidden;}
+
+  /* BACKGROUND */
+  #bg{position:absolute;inset:0;transition:background .6s ease;overflow:hidden;}
+  #bgArt{position:absolute;inset:0;}
+  #eventArt{position:absolute;inset:0;z-index:1;opacity:0;transition:opacity 1.2s ease;pointer-events:none;}
+  #eventArt.show{opacity:1;}
+  #bg.alert::after{content:"";position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 40%,transparent 40%,rgba(200,80,20,.20));
+    animation:pulse 1.3s infinite;pointer-events:none;}
+  @keyframes pulse{50%{opacity:.4}}
+  .scan{position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.10) 0 1px,transparent 1px 3px);z-index:6;}
+  .vig{position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 120px rgba(2,10,6,.9);z-index:5;}
+
+  /* HUD */
+  #hud{position:absolute;top:0;left:0;right:0;z-index:8;display:flex;gap:10px;align-items:center;
+    padding:8px 12px;font-family:'Share Tech Mono';font-size:10px;color:#a0e8c0;
+    background:linear-gradient(180deg,rgba(2,12,6,.82),transparent);}
+  .gauge{flex:1;} .gauge .lab{letter-spacing:1px;opacity:.7;}
+  .gauge .bar{height:5px;background:#0a2a18;border-radius:3px;margin-top:2px;overflow:hidden;}
+  .gauge .fill{height:100%;border-radius:3px;transition:width .5s;}
+  #plaStat{white-space:nowrap;color:var(--pla);}
+  #mute{border:1px solid #0a3020;background:transparent;color:#a0e8c0;border-radius:7px;padding:3px 8px;font-family:'Share Tech Mono';font-size:10px;cursor:pointer;}
+
+  /* CHARACTER */
+  #char{position:absolute;left:50%;bottom:165px;transform:translateX(-50%);z-index:4;
+    width:230px;height:300px;display:flex;align-items:flex-end;justify-content:center;transition:opacity .3s;}
+  #char svg{filter:drop-shadow(0 8px 22px rgba(0,0,0,.5));}
+  #char img.sprite{height:100%;width:auto;object-fit:contain;border-radius:12px;
+    box-shadow:0 0 0 1px rgba(64,232,176,.12),0 12px 32px rgba(0,0,0,.6);
+    animation:floatIdle 4s ease-in-out infinite;}
+
+  /* DIALOGUE */
+  #dlgWrap{position:absolute;left:0;right:0;bottom:0;z-index:9;padding:10px;}
+  #namebox{display:inline-block;font-family:'Mali';font-weight:700;font-size:14px;padding:4px 16px;border-radius:10px 10px 0 0;
+    background:var(--glow);color:#020a06;margin-left:6px;}
+  #namebox.pla{background:var(--pla);} #namebox.guide{background:var(--guide);}
+  #namebox.narr{display:none;}
+  #dlg{background:linear-gradient(180deg,rgba(4,18,10,.96),rgba(2,12,6,.97));
+    border:1px solid #0a3820;border-radius:0 14px 14px 14px;padding:15px 16px 16px;min-height:96px;
+    box-shadow:0 0 30px rgba(64,232,176,.10);font-size:15.5px;line-height:1.6;cursor:pointer;}
+  #dlg.narr-style{font-style:italic;color:#b0e8d0;}
+  #adv{position:absolute;right:18px;bottom:18px;color:var(--glow);font-size:13px;animation:bob 1s infinite;}
+  @keyframes bob{50%{transform:translateY(3px)}}
+
+  /* CHOICES */
+  #choices{position:absolute;left:0;right:0;bottom:0;z-index:11;padding:12px;display:none;flex-direction:column;gap:8px;
+    background:linear-gradient(0deg,rgba(2,12,6,.96) 70%,transparent);max-height:80%;overflow-y:auto;}
+  #choices.show{display:flex;}
+  .ask{font-family:'Mali';font-weight:600;font-size:14px;color:#c0f0d8;text-align:center;margin-bottom:2px;}
+  .ch{border:1px solid #0a3820;background:rgba(4,18,10,.92);border-radius:11px;padding:12px 14px;color:var(--ink);
+    font-family:'Noto Sans Thai';font-size:14px;line-height:1.4;text-align:left;cursor:pointer;transition:transform .07s,box-shadow .15s,background .15s;}
+  .ch:hover{background:rgba(8,36,18,.96);box-shadow:0 0 16px rgba(64,232,176,.18);border-color:var(--glow);}
+  .ch:active{transform:scale(.99);}
+
+  /* OVERLAYS */
+  .ov{position:absolute;inset:0;z-index:30;display:none;align-items:center;justify-content:center;padding:20px;
+    background:rgba(2,10,6,.84);backdrop-filter:blur(4px);}
+  .ov.show{display:flex;animation:fade .3s;} @keyframes fade{from{opacity:0}}
+  .box{background:linear-gradient(180deg,rgba(4,20,12,.97),rgba(2,12,6,.98));border:1px solid #0a3820;
+    border-radius:18px;padding:22px;max-width:460px;width:100%;text-align:center;box-shadow:0 0 44px rgba(64,232,176,.14);}
+  .box h1{font-family:'Mali';font-size:26px;color:var(--glow);margin-bottom:4px;text-shadow:0 0 20px rgba(64,232,176,.4);}
+  .box h2{font-family:'Mali';font-size:17px;color:var(--glow);margin-bottom:8px;}
+  .box p{font-size:14.5px;line-height:1.65;color:#d0f0e0;}
+  .btn{font-family:'Mali';font-weight:700;border:1px solid var(--glow);background:rgba(64,232,176,.14);color:#f0fff4;
+    border-radius:11px;padding:13px 18px;font-size:15px;cursor:pointer;width:100%;margin-top:9px;box-shadow:0 0 18px rgba(64,232,176,.16);}
+  .btn:hover{background:rgba(64,232,176,.26);} .btn.alt{border-color:#0a3820;background:transparent;box-shadow:none;color:#a0e8c0;}
+
+  /* RESULT — position:fixed หลุดจาก #vn overflow:hidden ทำให้เลื่อนได้ */
+  #result{position:fixed;align-items:flex-start;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+  #result .box{overflow:visible;max-height:none;text-align:left;margin:20px auto;padding-bottom:28px;}
+  .code{font-family:'Orbitron';font-weight:800;font-size:44px;letter-spacing:8px;text-align:center;}
+  .codeword{font-size:12px;color:#7fb8a0;text-align:center;}
+  .grp{display:flex;gap:10px;padding:9px 0;border-top:1px solid #0a3820;}
+  .gbar{width:5px;border-radius:5px;} .grp b{font-size:14px;} .grp .fac{font-size:11px;color:#7fb8a0;line-height:1.5;}
+  .tag{font-size:9px;padding:2px 8px;border-radius:20px;white-space:nowrap;align-self:start;}
+  .vnote{font-size:12px;background:rgba(64,232,176,.07);border:1px solid #0a3820;border-radius:10px;padding:10px;margin-top:10px;line-height:1.55;}
+  .fnote{font-size:10.5px;color:#7fb8a0;line-height:1.6;margin-top:12px;}
+
+  /* MOTION / ANIMATION */
+  @keyframes kenBurns{from{transform:scale(1.03) translate(0,0)}to{transform:scale(1.08) translate(-10px,-6px)}}
+  @keyframes kenBurns2{from{transform:scale(1.08) translate(9px,5px)}to{transform:scale(1.03) translate(0,0)}}
+  @keyframes floatIdle{0%,100%{transform:translateY(0px)}50%{transform:translateY(-5px)}}
+  #bgArt img{animation:kenBurns 28s ease-in-out infinite alternate;will-change:transform;}
+  #eventArt img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+    animation:kenBurns2 33s ease-in-out infinite alternate-reverse;will-change:transform;}
+  #vn.motion-reduced #bgArt img,
+  #vn.motion-reduced #eventArt img,
+  #vn.motion-reduced #char img.sprite{animation:none!important;transform:none!important}
+  @media(prefers-reduced-motion:reduce){
+    #vn.shake,#fxOverlay.flicker,#bgArt.glitch,#dimOverlay.active{animation:none!important}
+    #bg.alert::after{animation:none!important;opacity:.18!important}
+    #bgArt img,#eventArt img,#char img.sprite{animation:none!important;transform:none!important}
+  }
+
+  /* EFFECTS */
+  @keyframes shakeFx{0%,100%{transform:translate(0,0)}12%{transform:translate(-3px,2px)}25%{transform:translate(3px,-2px)}
+    40%{transform:translate(-2px,3px)}55%{transform:translate(2px,-1px)}70%{transform:translate(-1px,2px)}85%{transform:translate(1px,-1px)}}
+  #vn.shake{animation:shakeFx .5s ease forwards}
+  @keyframes flickerFx{0%,100%{opacity:0}5%{opacity:.55}13%{opacity:0}38%{opacity:.45}45%{opacity:0}68%{opacity:.32}73%{opacity:0}}
+  #fxOverlay{position:absolute;inset:0;z-index:28;pointer-events:none;background:#000;opacity:0}
+  #fxOverlay.flicker{animation:flickerFx 1.2s ease forwards}
+  #crackOverlay{position:absolute;inset:0;z-index:7;pointer-events:none;opacity:0;transition:opacity 2s;
+    box-shadow:inset 0 0 80px rgba(180,80,20,.5),inset 0 0 40px rgba(180,60,10,.28)}
+  #crackOverlay.active{opacity:1}
+  #dimOverlay{position:absolute;inset:0;z-index:6;pointer-events:none;background:#000;opacity:0;transition:opacity 2s}
+  #dimOverlay.active{opacity:.38}
+  #bg.alert.calm-mode::after{animation:none!important;opacity:.10!important}
+  #fxToggle{border:1px solid #0a3020;background:transparent;color:var(--glow);border-radius:7px;
+    padding:3px 8px;font-family:'Share Tech Mono';font-size:10px;cursor:pointer;transition:color .2s,border-color .2s}
+  #fxToggle.off{color:var(--warn);border-color:rgba(255,93,112,.4)}
+</style>
+</head>
+<body>
+<div id="vn">
+  <div id="bg"><div id="bgArt"></div><div id="eventArt"></div></div>
+  <div class="vig"></div><div class="scan"></div>
+  <div id="fxOverlay"></div>
+  <div id="crackOverlay"></div>
+  <div id="dimOverlay"></div>
+
+  <div id="hud">
+    <div class="gauge"><div class="lab">SUPPLY</div><div class="bar"><div class="fill" id="g_sup" style="background:#e8c040"></div></div></div>
+    <div class="gauge"><div class="lab">MORALE</div><div class="bar"><div class="fill" id="g_mor" style="background:#40e8b0"></div></div></div>
+    <span id="plaStat">ปลา: โอเค</span>
+    <button id="fxToggle" title="ลดเอฟเฟกต์">✦</button>
+    <button id="mute">♪</button>
+  </div>
+
+  <div id="char"></div>
+
+  <div id="dlgWrap">
+    <div id="namebox">—</div>
+    <div id="dlg">—<span id="adv">▼</span></div>
+  </div>
+
+  <div id="choices"></div>
+
+  <!-- START -->
+  <div class="ov show" id="start"><div class="box" style="background:linear-gradient(180deg,rgba(2,18,10,.97),rgba(2,12,6,.98));overflow:hidden;position:relative">
+    <img src="assets/isl_key_title.png" onerror="this.style.display='none'" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.22;pointer-events:none">
+    <div style="position:relative;z-index:1">
+    <h1>เกาะสุดขอบ</h1>
+    <p style="color:#80e8c0;font-family:'Share Tech Mono';font-size:12px;margin-bottom:10px">SURVIVAL · VISUAL NOVEL</p>
+    <p>เรือของกลุ่มเธอล่ม เธอขึ้นฝั่งเกาะร้างมาได้ มีเพื่อนชื่อ <b style="color:var(--pla)">ปลา</b> กับ <b style="color:var(--guide)">ไกด์พี่ป้อม</b> อยู่ด้วย<br><br>
+    ต้องรอดชีวิตให้ได้ — <b>เลือกสิ่งที่เธออยากลงมือทำ</b> แล้วดูว่าสุดท้ายเธอคือคนแบบไหน</p>
+    <button class="btn" id="startBtn">▶ เริ่มเรื่อง</button>
+    <div class="fnote">12 สถานการณ์ · มีเสียงประกอบ · ภาพ AI</div>
+  </div></div></div>
+
+  <!-- CHECKPOINT -->
+  <div class="ov" id="cp"><div class="box">
+    <h2 id="cpHead">— จบบท —</h2>
+    <p id="cpText"></p>
+    <button class="btn" id="cpNext">เล่นต่อ ▶</button>
+  </div></div>
+
+  <!-- RESULT -->
+  <div class="ov" id="result">
+    <div class="box" id="card" style="position:relative;overflow:hidden">
+      <img src="assets/isl_card_bg.png" onerror="this.style.display='none'" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.10;pointer-events:none">
+    </div>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+
+/* ============================================================
+   แกนวัด — คัดลอกจาก thara9-vn.html ทุกตัวอักษร
+   ============================================================ */
+const TYPE={R:{c:'#ff7a4d',th:'ลงมือทำ'},I:{c:'#36c9c9',th:'วิเคราะห์'},A:{c:'#c46bd6',th:'สร้างสรรค์'},
+  S:{c:'#ffc24d',th:'ดูแลคน'},E:{c:'#ff5d70',th:'นำ/สั่งการ'},C:{c:'#5d8bff',th:'จัดระบบ'}};
+const DIMS=['R','I','A','S','E','C'],HEX={R:0,I:1,A:2,S:3,E:4,C:5};
+const GROUP={
+ R:{name:'สายสร้าง / ลงมือทำ',
+    fac:'วิศวกรรม · เทคโนโลยี · เกษตร · สถาปัตย์(โครงสร้าง)',
+    jobs:'วิศวกร · นักพัฒนาซอฟต์แวร์ · ช่างเทคนิค · สถาปนิก · ผู้ประกอบการ',
+    desc:'เรียนรู้ผ่านการลงมือทำจริง ชอบเห็นผลลัพธ์ที่จับต้องได้ เมื่อเจอปัญหาสัญชาตญาณแรกคือ "แก้เลย"',
+    strength:'แก้ปัญหาเฉพาะหน้าเก่ง ทำจริงทำได้',grow:'ลองวางแผนก่อนลงมือบ้าง'},
+ I:{name:'สายวิเคราะห์ / ค้นคว้า',
+    fac:'วิทยาศาสตร์ · แพทย์/แล็บ · เภสัช · วิทยาการข้อมูล',
+    jobs:'นักวิทยาศาสตร์ · แพทย์ · นักวิจัย · Data Scientist · เภสัชกร',
+    desc:'ชอบเข้าใจว่า "ทำไม" ก่อนลงมือ สนุกกับการหาคำตอบ ข้อมูลคือเพื่อนที่ดีที่สุด',
+    strength:'คิดเป็นระบบ แก้ปัญหาด้วยข้อมูล',grow:'อย่าคิดจนไม่เริ่ม ลองลงมือก่อนบ้าง'},
+ A:{name:'สายสร้างสรรค์',
+    fac:'นิเทศ · ศิลปกรรม · สถาปัตย์(ออกแบบ) · ดิจิทัลมีเดีย',
+    jobs:'กราฟิกดีไซเนอร์ · UX Designer · ผู้กำกับ · นักโฆษณา · Content Creator',
+    desc:'มองหาวิธีใหม่ที่ไม่เหมือนใคร ชอบแสดงออกและสร้างสิ่งที่คนอื่นยังไม่คิดถึง',
+    strength:'ไอเดียสด ทำให้สิ่งธรรมดากลายเป็นสิ่งพิเศษ',grow:'ทำไอเดียให้เป็นจริงทีละขั้น'},
+ S:{name:'สายดูแล / เชื่อมคน',
+    fac:'พยาบาล · ครุศาสตร์ · จิตวิทยา · สหเวช',
+    jobs:'พยาบาล · ครู · นักจิตวิทยา · นักสังคมสงเคราะห์ · HR',
+    desc:'ใส่ใจคนรอบข้าง สุขที่ได้ช่วยเหลือ มีความสามารถในการสร้างความสัมพันธ์ที่ดี',
+    strength:'เข้าใจคน ทีมเวิร์กดี คนรอบข้างไว้วางใจ',grow:'ดูแลตัวเองด้วย ไม่ใช่แค่คนอื่น'},
+ E:{name:'สายนำ / โน้มน้าว',
+    fac:'บริหารธุรกิจ · นิติ · รัฐศาสตร์ · การตลาด',
+    jobs:'ผู้จัดการ · ทนายความ · นักการตลาด · ผู้ประกอบการ · นักการเมือง',
+    desc:'กล้าตัดสินใจและขับเคลื่อนให้สิ่งต่าง ๆ เกิดขึ้นจริง ชอบมีเป้าหมายชัดและทำให้ทีมเดินหน้า',
+    strength:'ผู้นำที่กล้าเสี่ยง ทำให้ทีมเคลื่อนไหว',grow:'ฟังทีมก่อนตัดสินใจให้มากขึ้น'},
+ C:{name:'สายจัดระบบ',
+    fac:'บัญชี · การเงิน · ระบบสารสนเทศ · โลจิสติกส์',
+    jobs:'นักบัญชี · นักการเงิน · นักวิเคราะห์ระบบ · Logistics Manager · ผู้ตรวจสอบ',
+    desc:'ชอบความเป็นระเบียบและแม่นยำ ทำงานได้เชื่อถือได้ ไม่ชอบให้อะไรตกหล่น',
+    strength:'รอบคอบ เชื่อถือได้ จัดการได้ครบ',grow:'ลองยืดหยุ่นกับการเปลี่ยนแปลงมากขึ้น'},
+};
+
+/* STATE */
+let S={supplies:80,groupMorale:70,shelter:false,health:100,hope:70,plaHurt:false,foundRuins:false,signalSent:false};
+const tally={R:0,I:0,A:0,S:0,E:0,C:0}, behaviorLog=[]; let valuesChoice=null, choiceT0=0;
+
+/* ============================================================ SVG FALLBACK */
+function plaPlaceholderSVG(expr){
+  const E={
+    neutral:{br:'M72 78 L90 78 M110 78 L128 78',eye:'norm',mo:'M88 108 Q100 113 112 108',ex:''},
+    panic:  {br:'M70 70 L90 76 M110 76 L130 70',eye:'wide',mo:'M100 110 m-8 0 a8 8 0 1 0 16 0 a8 8 0 1 0 -16 0',ex:'<circle cx="126" cy="90" r="3" fill="#b0e8c8"/>'},
+    relieved:{br:'M72 76 Q81 72 92 76 M108 76 Q119 72 128 76',eye:'happy',mo:'M86 106 Q100 118 114 106',ex:''},
+    sad:    {br:'M72 74 Q81 80 90 80 M110 80 Q119 74 128 74',eye:'norm',mo:'M88 112 Q100 106 112 112',ex:''},
+    brave:  {br:'M72 74 L90 80 M110 80 L128 74',eye:'norm',mo:'M88 108 L112 108',ex:''},
+  }[expr]||{br:'M72 78 L90 78 M110 78 L128 78',eye:'norm',mo:'M88 108 Q100 113 112 108',ex:''};
+  const eyes=E.eye==='wide'
+    ?'<circle cx="82" cy="92" r="9" fill="#fff"/><circle cx="82" cy="92" r="5" fill="#2a4030"/><circle cx="118" cy="92" r="9" fill="#fff"/><circle cx="118" cy="92" r="5" fill="#2a4030"/>'
+    :E.eye==='happy'
+    ?'<path d="M74 94 Q82 86 90 94" stroke="#2a4030" stroke-width="3" fill="none"/><path d="M110 94 Q118 86 126 94" stroke="#2a4030" stroke-width="3" fill="none"/>'
+    :'<circle cx="82" cy="93" r="5" fill="#2a4030"/><circle cx="118" cy="93" r="5" fill="#2a4030"/>';
+  return `<svg width="200" height="270" viewBox="0 0 200 270">
+    <path d="M40 270 Q40 200 100 190 Q160 200 160 270Z" fill="#3a7856"/>
+    <path d="M78 190 L78 240 L122 240 L122 190" fill="#c8e8d0" stroke="#6a9870" stroke-width="1" opacity=".5"/>
+    <rect x="88" y="178" width="24" height="24" rx="6" fill="#e8c8a0"/>
+    <ellipse cx="100" cy="96" rx="56" ry="62" fill="#e8c8a0"/>
+    <path d="M46 90 Q50 30 100 28 Q150 30 154 90 Q148 60 100 56 Q52 60 46 90Z" fill="#3a2818"/>
+    <path d="M46 94 Q42 72 50 58Z" fill="#3a2818"/>
+    <path d="M154 94 Q158 72 150 58Z" fill="#3a2818"/>
+    ${eyes}
+    <path d="${E.br}" stroke="#3a2818" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="${E.mo}" stroke="#a06060" stroke-width="3" fill="none" stroke-linecap="round"/>
+    ${E.ex}
+  </svg>`;
+}
+function guidePlaceholderSVG(expr){
+  const mo=expr==='hopeful'?'M86 108 Q100 118 114 108':expr==='worried'?'M88 113 Q100 107 112 113':
+    expr==='calm'?'M88 110 L112 110':'M88 109 Q100 115 112 109';
+  const br=expr==='worried'?'M72 76 Q81 82 90 80 M110 80 Q119 76 128 74':'M72 78 L90 78 M110 78 L128 78';
+  const extra=expr==='hopeful'?'<path d="M74 96 Q82 88 90 96" stroke="#2a4030" stroke-width="2.5" fill="none"/><path d="M110 96 Q118 88 126 96" stroke="#2a4030" stroke-width="2.5" fill="none"/>':'<circle cx="82" cy="94" r="5" fill="#2a4030"/><circle cx="118" cy="94" r="5" fill="#2a4030"/>';
+  return `<svg width="200" height="270" viewBox="0 0 200 270">
+    <path d="M40 270 Q40 200 100 192 Q160 200 160 270Z" fill="#4a6040"/>
+    <ellipse cx="100" cy="96" rx="54" ry="60" fill="#d8b890"/>
+    <path d="M48 90 Q52 34 100 32 Q148 34 152 90 Q148 64 100 60 Q52 64 48 90Z" fill="#4a3820"/>
+    <path d="M48 98 Q44 78 52 64Z" fill="#4a3820"/>
+    <path d="M52 80 Q58 50 80 44" stroke="#9a8878" stroke-width="3" fill="none" opacity=".5"/>
+    ${extra}
+    <path d="${br}" stroke="#3a2818" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="${mo}" stroke="#a06060" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+  </svg>`;
+}
+function bgFallbackSVG(loc){
+  const C={beach:'#0a1e2a',jungle:'#041408',camp:'#0c1c08',forest:'#081408',
+    storm:'#0a0810',cliff:'#0e1418',cave:'#040408',ruin:'#10100c',
+    peak:'#0a0c14',night:'#020408'};
+  return `<svg width="100%" height="100%" viewBox="0 0 540 960" preserveAspectRatio="xMidYMid slice" style="position:absolute;inset:0">
+    <rect width="540" height="960" fill="${C[loc]||'#020a06'}"/>
+    <circle cx="270" cy="300" r="180" fill="#40e8b0" opacity=".04"/>
+    <rect x="0" y="600" width="540" height="360" fill="#000" opacity=".3"/>
+  </svg>`;
+}
+function replaceWithSVG(el,who,expr){
+  const tmp=document.createElement('div');
+  tmp.innerHTML=who==='pla'?plaPlaceholderSVG(expr):guidePlaceholderSVG(expr);
+  if(el.parentNode)el.parentNode.replaceChild(tmp.firstChild,el);
+}
+function facePla(expr){return `<img class="sprite" src="assets/pla_${expr}.png" onerror="replaceWithSVG(this,'pla','${expr}')" alt="">`;}
+function faceGuide(expr){return `<img class="sprite" src="assets/guide_${expr}.png" onerror="replaceWithSVG(this,'guide','${expr}')" alt="">`;}
+function bgArt(loc){
+  const src=`assets/isl_bg_${loc}.png`;
+  return `<img src="${src}" onerror="this.parentNode.innerHTML=bgFallbackSVG('${loc}')" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">`;
+}
+function preloadAssets(){
+  ['pla_neutral','pla_panic','pla_relieved','pla_sad','pla_brave',
+   'guide_neutral','guide_calm','guide_worried','guide_hopeful','isl_key_title',
+   'isl_bg_beach','isl_bg_jungle','isl_bg_camp','isl_bg_forest','isl_bg_storm',
+   'isl_bg_cliff','isl_bg_cave','isl_bg_ruin','isl_bg_peak','isl_bg_night'].forEach(n=>{
+    const i=new Image();i.src=`assets/${n}.png`;});
+}
+
+/* AUDIO — เสียงโทนเกาะ/ทะเล */
+let actx,master,muted=false;
+function initAudio(){
+  if(actx)return;
+  actx=new(window.AudioContext||window.webkitAudioContext)();
+  master=actx.createGain();master.gain.value=.36;master.connect(actx.destination);
+  // คลื่นทะเล: filtered noise + LFO ช้า ๆ เหมือนคลื่นซัด
+  try{
+    const buf=actx.createBuffer(1,actx.sampleRate*6,actx.sampleRate);
+    const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1);
+    const src=actx.createBufferSource();src.buffer=buf;src.loop=true;
+    const f1=actx.createBiquadFilter();f1.type='bandpass';f1.frequency.value=300;f1.Q.value=.8;
+    const f2=actx.createBiquadFilter();f2.type='lowpass';f2.frequency.value=800;
+    const wg=actx.createGain();wg.gain.value=.022;
+    // LFO: ทำให้คลื่นขึ้น-ลงช้า ๆ ~0.08Hz (รอบละ 12 วินาที)
+    const lfo=actx.createOscillator();lfo.frequency.value=.08;
+    const lg=actx.createGain();lg.gain.value=.012;
+    lfo.connect(lg);lg.connect(wg.gain);lfo.start();
+    src.connect(f1);f1.connect(f2);f2.connect(wg);wg.connect(master);src.start();
+    // ลมเบา ๆ: oscillator ต่ำ ~50Hz นุ่ม
+    const wind=actx.createOscillator();wind.type='sine';wind.frequency.value=52;
+    const wnd=actx.createGain();wnd.gain.value=.010;
+    wind.connect(wnd);wnd.connect(master);wind.start();
+  }catch(e){}
+}
+function tone(f,d,t='sine',v=.12,delay=0){
+  if(!actx||muted)return;
+  const s=actx.currentTime+delay,o=actx.createOscillator(),g=actx.createGain();
+  o.type=t;o.frequency.value=f;
+  g.gain.setValueAtTime(.0001,s);g.gain.linearRampToValueAtTime(v,s+.014);
+  g.gain.exponentialRampToValueAtTime(.0001,s+d);
+  o.connect(g);g.connect(master);o.start(s);o.stop(s+d+.06);
+}
+// blip: หยดน้ำ/ใบไม้กระทบ — นุ่มไม่แหลม
+const blip=()=>{
+  if(!actx||muted)return;
+  const s=actx.currentTime,o=actx.createOscillator(),g=actx.createGain();
+  o.type='sine';o.frequency.setValueAtTime(460,s);o.frequency.exponentialRampToValueAtTime(130,s+.09);
+  g.gain.setValueAtTime(.0001,s);g.gain.linearRampToValueAtTime(.065,s+.007);
+  g.gain.exponentialRampToValueAtTime(.0001,s+.11);
+  o.connect(g);g.connect(master);o.start(s);o.stop(s+.14);
+};
+// pick: เสียงเลือก — โทนกลมอุ่นเหมือนไม้กระทบ
+const pick=()=>{tone(550,.06,'sine',.13);tone(1100,.03,'sine',.05,.01);};
+// ding: chord major สดใส G major arpeggio + octave (ความหวัง/รอดชีวิต)
+const ding=()=>[392,494,588,784].forEach((f,i)=>{tone(f,.65,'sine',.12,i*.1);tone(f*2,.26,'sine',.04,i*.1+.01);});
+// stormWave: คลื่นพายุซัดแรง
+const stormWave=()=>{if(!actx||muted)return;
+  try{const buf=actx.createBuffer(1,actx.sampleRate*.4,actx.sampleRate);
+    const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1);
+    const src=actx.createBufferSource();src.buffer=buf;
+    const f=actx.createBiquadFilter();f.type='lowpass';f.frequency.value=600;
+    const g=actx.createGain();g.gain.value=.18;
+    src.connect(f);f.connect(g);g.connect(master);src.start();}catch(e){}
+};
+// birdChirp: นกร้องตอนเช้า
+const birdChirp=()=>{[800,1000,1200,1000].forEach((f,i)=>tone(f,.07,'sine',.09,i*.07));};
+// fireCrackle: เสียงไฟลุก
+const fireCrackle=()=>{if(!actx||muted)return;
+  try{const buf=actx.createBuffer(1,actx.sampleRate*.15,actx.sampleRate);
+    const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*.5;
+    const src=actx.createBufferSource();src.buffer=buf;
+    const f=actx.createBiquadFilter();f.type='bandpass';f.frequency.value=2000;f.Q.value=2;
+    const g=actx.createGain();g.gain.value=.12;
+    src.connect(f);f.connect(g);g.connect(master);src.start();}catch(e){}
+};
+$("mute").onclick=()=>{muted=!muted;if(master)master.gain.value=muted?0:.36;$("mute").textContent=muted?'♪̶':'♪';};
+
+/* DIALOGUE RUNTIME */
+let beats=[],bi=0,typing=false,typeTimer=null,afterBeats=null,curBG=null;
+const CH={
+  pla:  {name:'ปลา',   cls:'pla',  face:facePla},
+  guide:{name:'พี่ป้อม',cls:'guide',face:faceGuide},
+  narr: {name:'',      cls:'narr', face:null},
+  you:  {name:'',      cls:'narr', face:null},
+};
+function setBG(loc,alert){if(loc&&loc!==curBG){curBG=loc;$("bgArt").innerHTML=bgArt(loc);}
+  $("bg").classList.toggle('alert',!!alert);}
+function setChar(who,expr){
+  const c=CH[who];const box=$("char");
+  if(!c||!c.face){box.style.opacity=0;box.innerHTML='';return;}
+  box.style.opacity=1;box.innerHTML=c.face(expr);}
+function renderBeat(b){
+  if(b.bg!==undefined||b.alert!==undefined)setBG(b.bg,b.alert);
+  triggerFX(b);
+  const c=CH[b.who]||CH.narr;
+  $("namebox").className=c.cls;$("namebox").textContent=c.name;
+  setChar(b.who,b.expr);
+  $("dlg").classList.toggle('narr-style',b.who==='narr'||b.who==='you');
+  typewrite(b.text);}
+function typewrite(txt){typing=true;const el=$("dlg");el.innerHTML='';let i=0;clearInterval(typeTimer);
+  typeTimer=setInterval(()=>{el.textContent=txt.slice(0,++i);if(i%2===0)blip();
+    if(i>=txt.length){clearInterval(typeTimer);typing=false;el.innerHTML=txt+'<span id="adv">▼</span>';}},20);}
+$("dlg").onclick=()=>{if(typing){clearInterval(typeTimer);typing=false;
+    const t=beats[bi].text;$("dlg").innerHTML=t+'<span id="adv">▼</span>';return;}
+  bi++;if(bi<beats.length)renderBeat(beats[bi]);else{const cb=afterBeats;afterBeats=null;cb&&cb();}};
+function play(arr,done){exitCalmMode();beats=arr;bi=0;afterBeats=done;$("choices").classList.remove('show');$("dlgWrap").style.display='block';renderBeat(beats[0]);}
+
+/* CHOICES */
+function ask(prompt,list,onPick){
+  enterCalmMode();hideEventImage();
+  $("dlgWrap").style.display='none';
+  const box=$("choices");box.innerHTML=`<div class="ask">${prompt}</div>`;
+  list.slice().sort(()=>Math.random()-.5).forEach(ch=>{
+    const b=document.createElement('button');b.className='ch';b.textContent=ch.text;
+    b.onclick=()=>{pick();tally[ch.dom]++;behaviorLog.push({c:ch.dom,ms:Math.round(performance.now()-choiceT0)});
+      ch.eff&&ch.eff();updateHUD();box.classList.remove('show');$("dlgWrap").style.display='block';
+      play(ch.out(),onPick);};
+    box.appendChild(b);
+  });
+  box.classList.add('show');choiceT0=performance.now();}
+
+/* HUD */
+function updateHUD(){
+  $("g_sup").style.width=Math.max(8,Math.min(100,S.supplies))+'%';
+  $("g_mor").style.width=Math.max(8,Math.min(100,S.groupMorale))+'%';
+  const t=S.plaHurt?'ปลา: บาดเจ็บ!':'ปลา: โอเค';
+  $("plaStat").textContent=t;$("plaStat").style.color=S.plaHurt?'#ff5d70':'#7dd87a';
+  updateAtmosphere();}
+
+/* EFFECTS ENGINE */
+let reducedMotion=matchMedia('(prefers-reduced-motion:reduce)').matches;
+const _noFX=()=>reducedMotion||matchMedia('(prefers-reduced-motion:reduce)').matches;
+let _shCd=0,_flCd=0;
+function fireShake(){if(_noFX()||Date.now()<_shCd)return;_shCd=Date.now()+600;
+  const v=$("vn");v.classList.remove('shake');void v.offsetWidth;v.classList.add('shake');
+  setTimeout(()=>v.classList.remove('shake'),550);}
+function fireFlicker(){if(_noFX()||Date.now()<_flCd)return;_flCd=Date.now()+1400;
+  const o=$("fxOverlay");o.classList.remove('flicker');void o.offsetWidth;o.classList.add('flicker');
+  setTimeout(()=>o.classList.remove('flicker'),1300);}
+function triggerFX(b){
+  if(!b.bg)return;
+  if(b.alert&&['beach','storm'].includes(b.bg)){setTimeout(fireShake,50);setTimeout(fireFlicker,130);}
+  if(b.alert&&b.bg==='storm'){setTimeout(stormWave,80);setTimeout(stormWave,600);}
+  if(b.bg==='camp'&&!b.alert){setTimeout(fireCrackle,100);}
+  if(b.bg==='forest'||b.bg==='jungle'){setTimeout(birdChirp,200);}
+  if(b.fx==='shake')setTimeout(fireShake,50);
+  if(b.fx==='flicker')setTimeout(fireFlicker,130);}
+function enterCalmMode(){$("vn").classList.remove('shake');$("fxOverlay").classList.remove('flicker');$("bg").classList.add('calm-mode');}
+function exitCalmMode(){$("bg").classList.remove('calm-mode');}
+function updateAtmosphere(){
+  $("crackOverlay").classList.toggle('active',S.health<40||S.hope<30);
+  $("dimOverlay").classList.toggle('active',S.supplies<25);}
+
+/* EVENT IMAGES */
+const EVENT_IMGS=['shore','water','shelter','food','injury','storm','conflict','ration','ruin','signal','morale','ship'];
+function showEventImage(i){const id=EVENT_IMGS[i];if(!id)return;
+  const art=$("eventArt");
+  art.innerHTML=`<img src="assets/isl_event_${id}.png" onerror="this.parentNode.innerHTML=''" alt="">`;
+  requestAnimationFrame(()=>art.classList.add('show'));}
+function hideEventImage(){const art=$("eventArt");art.classList.remove('show');
+  setTimeout(()=>{if(!art.classList.contains('show'))art.innerHTML='';},1300);}
+
+if(reducedMotion)$("vn").classList.add('motion-reduced');
+$("fxToggle").onclick=()=>{reducedMotion=!reducedMotion;$("fxToggle").classList.toggle('off',reducedMotion);
+  $("fxToggle").title=reducedMotion?'เปิดเอฟเฟกต์':'ลดเอฟเฟกต์';
+  $("vn").classList.toggle('motion-reduced',reducedMotion);
+  if(reducedMotion){$("vn").classList.remove('shake');$("fxOverlay").classList.remove('flicker');
+    $("dimOverlay").classList.remove('active');$("crackOverlay").classList.remove('active');}
+  else updateAtmosphere();};
+
+/* ============================================================ CONTENT — 12 จุด */
+const b=(who,expr,text,bg,alert,fx)=>({who,expr,text,bg,alert,fx});
+
+function assertDomains(){
+  const req=new Set(['R','I','A','S','E','C']);
+  CRISES.forEach((c,i)=>{
+    const doms=new Set(c.choices().map(ch=>ch.dom));
+    const miss=[...req].filter(d=>!doms.has(d));
+    if(miss.length)console.error(`❌ CRISES[${i}] (${CRISIS_NAMES[i]}) ขาดโดเมน: ${miss.join(',')}`);
+  });}
+const CRISIS_NAMES=['ขึ้นฝั่ง','หาน้ำ','สร้างที่พัก','หาอาหาร','คนบาดเจ็บ','พายุเข้า','เห็นไม่ตรงกัน','เสบียงร่อยหรอ','เจอร่องรอย','ส่งสัญญาณ','ขวัญทีมตก','เห็นเรือ'];
+
+const CRISES=[
+// ---- จุด 0: ขึ้นฝั่งหลังเรือล่ม ----
+{ intro:(ST)=>[
+    b('pla','panic','พี่! เรือล่ม ทุกคนอยู่ที่ไหน ช่วยหนูด้วย!','beach',true),
+    b('guide','calm','ใจเย็นก่อน ทุกคนขึ้นมาได้แล้ว แต่ต้องตัดสินใจเร็ว'),
+    b('you',null,'ทรายยังร้อน น้ำทะเลเย็น ของจากเรือลอยอยู่ไม่ไกล — เธอจะทำอะไรก่อน?'),
+  ],
+  choices:()=>[
+    {text:'วิ่งกลับเข้าน้ำ เก็บของจากเรือที่ยังลอยอยู่ก่อนจม',dom:'R',eff:()=>S.supplies+=14,out:()=>[b('pla','relieved','ได้ของมาเยอะมากเลย ดีที่รีบไป')]},
+    {text:'สำรวจชายหาดทิศต่าง ๆ ประเมินว่าเกาะนี้เป็นแบบไหน',dom:'I',eff:()=>{},out:()=>[b('guide','calm','รู้ภาพรวมก่อน ทำให้การตัดสินใจถัดไปง่ายขึ้น')]},
+    {text:'หยิบสิ่งของที่ขึ้นฝั่งมา ดัดแปลงให้ใช้งานได้ทันที',dom:'A',eff:()=>S.supplies+=8,out:()=>[b('guide','calm','ความคิดสร้างสรรค์ในวิกฤตมีค่ามาก')]},
+    {text:'ดูแลทุกคนในกลุ่มให้ขึ้นฝั่งปลอดภัยก่อน',dom:'S',eff:()=>S.groupMorale+=8,out:()=>[b('pla','relieved','พี่ไม่ทิ้งใครไว้คนเดียวเลย ขอบคุณนะ')]},
+    {text:'รวบรวมกลุ่ม ประเมินสถานการณ์ บอกทิศทางต่อไป',dom:'E',eff:()=>S.groupMorale+=6,out:()=>[b('guide','calm','มีคนกำหนดทิศทาง ทุกคนสงบขึ้น')]},
+    {text:'นับคนและสิ่งของที่มี บันทึกและวางแผนก่อนลงมือ',dom:'C',eff:()=>S.supplies+=5,out:()=>[b('guide','calm','รู้ว่ามีอะไรบ้าง ทำให้แผนต่อไปชัดขึ้น')]},
+  ]},
+// ---- จุด 1: หาน้ำดื่ม ----
+{ intro:(ST)=>{const arr=[
+    b('guide','calm','น้ำสำคัญที่สุด มีเวลาไม่มากก่อนทุกคนจะขาดน้ำ','jungle',false)];
+    if(ST.groupMorale<65)arr.push(b('pla','sad','ทุกคนดูเหนื่อยและกลัวมาก พี่...'));
+    else arr.push(b('pla','brave','หนูพร้อมช่วยหาน้ำด้วย บอกได้เลย!'));
+    arr.push(b('you',null,'ป่าข้างหน้าทึบ ทุกคนเริ่มกระหาย — เธอจะหาน้ำยังไง?'));return arr;},
+  choices:()=>[
+    {text:'บุกเข้าป่าทันที ตามเสียงน้ำที่ได้ยินเบา ๆ',dom:'R',eff:()=>{S.supplies+=18;S.health-=4;},out:()=>[b('guide','calm','เจอน้ำแล้ว แต่บาดเจ็บเล็กน้อยจากการบุกป่า')]},
+    {text:'อ่านสัญญาณธรรมชาติ ทิศต้นไม้เขียวชอุ่ม/นกบิน',dom:'I',eff:()=>S.supplies+=15,out:()=>[b('guide','hopeful','วิเคราะห์ถูก เจอแหล่งน้ำโดยไม่ต้องเสี่ยง')]},
+    {text:'ดักน้ำค้างจากใบไม้ใหญ่ ทำภาชนะเก็บน้ำฝนจากวัสดุที่มี',dom:'A',eff:()=>S.supplies+=10,out:()=>[b('pla','relieved','ไม่คิดว่าจะได้ผลเลย แต่ทำได้จริง ๆ')]},
+    {text:'ให้ทุกคนช่วยกันหา ดูแลคนที่อ่อนแอที่สุดก่อน',dom:'S',eff:()=>{S.supplies+=11;S.groupMorale+=5;},out:()=>[b('pla','relieved','รู้สึกว่ามีคนดูแล ทำให้สู้ต่อได้')]},
+    {text:'ส่งทีมค้นหาหลายทิศพร้อมกัน กำหนดเวลานัดพบ',dom:'E',eff:()=>S.supplies+=16,out:()=>[b('guide','calm','แบ่งงานดี ได้น้ำเร็วกว่าค้นหาคนเดียว')]},
+    {text:'วางแผนเส้นทางค้นหา แบ่งพื้นที่ไม่ซ้ำ บันทึกทิศทาง',dom:'C',eff:()=>S.supplies+=12,out:()=>[b('guide','calm','มีระบบ ไม่หลงซ้ำเส้นทาง ประหยัดแรง')]},
+  ]},
+// ---- จุด 2: สร้างที่พักก่อนค่ำ ----
+{ intro:(ST)=>{const arr=[
+    b('guide','calm','อีกไม่กี่ชั่วโมงฟ้าจะมืด ต้องมีที่นอนก่อนฝนตก','camp',false)];
+    arr.push(b('pla',ST.shelter?'brave':'sad',ST.shelter?'มีของมาช่วยบ้างนะ ลุยได้เลย!':'ป่ามันทึบมาก ไม่รู้จะเริ่มจากตรงไหน'));
+    arr.push(b('you',null,'เวลาไม่มาก ฟ้าเริ่มครึ้ม — เธอจะสร้างที่พักยังไง?'));return arr;},
+  choices:()=>[
+    {text:'ลงมือสร้างทันที ตัดกิ่งไม้ใบปาล์มด้วยมือ',dom:'R',eff:()=>{S.shelter=true;S.health-=3;},out:()=>[b('pla','relieved','ได้ที่พักแล้ว บาดเจ็บนิดหน่อยแต่ไหว')]},
+    {text:'เลือกพื้นที่ดีที่สุดก่อน วิเคราะห์ทิศลม/โอกาสน้ำท่วม',dom:'I',eff:()=>{S.shelter=true;S.hope+=5;},out:()=>[b('guide','calm','เลือกจุดดี ที่พักแข็งแกร่งกว่าที่คิด')]},
+    {text:'ออกแบบโครงสร้างแบบใหม่ที่แข็งแรงกว่าเพิงธรรมดา',dom:'A',eff:()=>{S.shelter=true;S.hope+=6;},out:()=>[b('guide','hopeful','ไม่มีในคู่มือ แต่ใช้งานได้จริง')]},
+    {text:'จัดให้ทุกคนมีบทบาท ไม่ให้ใครว่างหรือรู้สึกถูกทิ้ง',dom:'S',eff:()=>{S.shelter=true;S.groupMorale+=8;},out:()=>[b('pla','relieved','ทุกคนรู้สึกมีส่วนร่วม ไม่กลัวเหมือนก่อน')]},
+    {text:'ประกาศแผน แบ่งหน้าที่ชัดเจน กำหนดเวลา',dom:'E',eff:()=>{S.shelter=true;S.groupMorale+=5;},out:()=>[b('guide','calm','ทีมลงมือได้เร็ว พอรู้บทบาทตัวเองชัด')]},
+    {text:'วางผังก่อน คำนวณวัสดุและเวลาที่ต้องการ',dom:'C',eff:()=>{S.shelter=true;S.supplies+=3;},out:()=>[b('guide','calm','มีแผนชัด ไม่สูญเสียวัสดุโดยเปล่าประโยชน์')]},
+  ]},
+// ---- จุด 3: หาอาหาร ----
+{ intro:(ST)=>{const arr=[
+    b('pla','sad','พี่... หิวมากแล้ว ป้องกันกินของแปลกมาตลอด','forest',false)];
+    arr.push(b('guide',ST.supplies>50?'calm':'worried',ST.supplies>50?'มีพืชกินได้ในป่า แต่ต้องรู้จักเลือก':'ระวัง บางอย่างอาจเป็นพิษ ต้องทดสอบก่อน'));
+    arr.push(b('you',null,'ท้องร้อง พลังงานเริ่มหมด — เธอจะหาอาหารยังไง?'));return arr;},
+  choices:()=>[
+    {text:'ออกหาในป่าเอง ดัก/จับสัตว์เล็กด้วยมือ',dom:'R',eff:()=>S.supplies+=18,out:()=>[b('pla','relieved','พี่ทำจริง ได้ของมาพอกินได้')]},
+    {text:'สังเกตว่าสัตว์/นกกินต้นไหน ตรวจสอบก่อนกิน',dom:'I',eff:()=>{S.supplies+=14;S.health+=3;},out:()=>[b('guide','calm','วิธีนี้ช้ากว่า แต่ปลอดภัยกว่าชัดเจน')]},
+    {text:'สร้างกับดักหรือเครื่องมือจากสิ่งที่มีในป่า',dom:'A',eff:()=>S.supplies+=16,out:()=>[b('guide','hopeful','ไอเดียใหม่ที่ไม่มีในคู่มือ แต่ได้ผล')]},
+    {text:'ถามทุกคนว่าใครรู้เรื่องพืชป่า ระดมความรู้กลุ่ม',dom:'S',eff:()=>{S.supplies+=11;S.groupMorale+=5;},out:()=>[b('pla','relieved','ปรากฎว่ามีคนรู้ด้วย ทำให้ได้ของดีและปลอดภัย')]},
+    {text:'ส่งคนที่เหมาะสมออกหา กำหนดเวลากลับ',dom:'E',eff:()=>S.supplies+=15,out:()=>[b('guide','calm','แบ่งงานดี ได้ผลดีกว่าทำคนเดียว')]},
+    {text:'แบ่งพื้นที่ค้นหาเป็นระบบ บันทึกสิ่งที่พบ',dom:'C',eff:()=>S.supplies+=13,out:()=>[b('guide','calm','มีระบบ ไม่หาซ้ำที่เดิม ประหยัดแรง')]},
+  ]},
+// ---- จุด 4: คนบาดเจ็บ ----
+{ intro:(ST)=>{const hurtPla=(ST.plaHurt||ST.health<65);if(hurtPla)S.plaHurt=true;
+    const arr=[b(hurtPla?'pla':'guide',hurtPla?'sad':'worried',
+      hurtPla?'พี่... ขาหนูบาดเจ็บ เดินไม่ค่อยไหว':'มีคนในกลุ่มบาดเจ็บ ต้องดูแลก่อนเดินทาง','camp',true)];
+    arr.push(b('guide','calm','ถ้าไม่จัดการตอนนี้จะหนักขึ้นในภายหลัง'));
+    arr.push(b('you',null,(hurtPla?'ปลาเจ็บอยู่ตรงหน้า — ':'คนในกลุ่มต้องการความช่วยเหลือ — ')+'เธอจะทำยังไง?'));return arr;},
+  choices:()=>[
+    {text:'ทำเฝือกด้วยไม้และผ้า ดูแลด้วยมือทันที',dom:'R',eff:()=>{S.health+=14;S.plaHurt=false;},out:()=>[b('pla','relieved','มีเฝือกแล้ว เดินได้บ้าง ขอบคุณพี่')]},
+    {text:'ประเมินอาการก่อน รุนแรงแค่ไหน มีความเสี่ยงอะไร',dom:'I',eff:()=>{S.health+=10;S.plaHurt=false;},out:()=>[b('guide','calm','วินิจฉัยถูก แก้ได้ตรงจุด ไม่เสียทรัพยากรเกิน')]},
+    {text:'คิดวิธีช่วยเหลือและเคลื่อนย้ายที่ต่างจากแบบปกติ',dom:'A',eff:()=>{S.health+=12;S.plaHurt=false;},out:()=>[b('guide','hopeful','ไม่มีในคู่มือ แต่ใช้ได้จริงและเบ็ดเสร็จ')]},
+    {text:'อยู่เป็นเพื่อน ปลอบใจ ไม่ให้รู้สึกโดดเดี่ยว',dom:'S',eff:()=>{S.health+=7;S.groupMorale+=9;S.plaHurt=false;},out:()=>[b('pla','relieved','แค่มีพี่อยู่ด้วย หนูรู้สึกดีขึ้นมากเลย')]},
+    {text:'จัดระบบดูแลหมุนเวียน แบ่งความรับผิดชอบ',dom:'E',eff:()=>{S.health+=10;S.groupMorale+=5;S.plaHurt=false;},out:()=>[b('guide','calm','มีระบบ คนเจ็บได้รับการดูแลตลอด')]},
+    {text:'วางแผนระยะยาว ประเมินว่าอาการจะกระทบแผนอย่างไร',dom:'C',eff:()=>{S.health+=8;S.plaHurt=false;},out:()=>[b('guide','calm','รู้ล่วงหน้า ปรับแผนได้ก่อนปัญหาจะใหญ่ขึ้น')]},
+  ]},
+// ---- จุด 5: พายุเข้า ----
+{ intro:(ST)=>[
+    b('guide','worried','พายุกำลังเข้า ลมแรงขึ้นทุกนาที ต้องเตรียมตัวเดี๋ยวนี้','storm',true),
+    b('pla','panic','ฟ้ามืดเร็วมากพี่! คลื่นสูงขึ้นด้วย เราทำยังไงดี!'),
+    b('you',null,'คลื่นลูกใหญ่ขึ้น ลมแรง — เธอจะรับมือพายุอย่างไร?'),
+  ],
+  choices:()=>[
+    {text:'ยึดของสำคัญ เสริมที่พักให้แข็งแกร่งด้วยมือก่อนพายุ',dom:'R',eff:()=>{S.shelter=true;S.supplies+=3;},out:()=>[b('pla','relieved','ที่พักรับพายุได้ ของไม่หาย ดีมาก')]},
+    {text:'ประเมินความรุนแรงและทิศทางพายุจากสัญญาณท้องฟ้า',dom:'I',eff:()=>{S.hope+=7;},out:()=>[b('guide','calm','รู้ว่าพายุจะผ่านกี่ชั่วโมง เตรียมตัวได้ถูกต้อง')]},
+    {text:'ดัดแปลงวัสดุที่มีให้ที่พักรับพายุได้ดีขึ้น',dom:'A',eff:()=>{S.shelter=true;S.health+=4;},out:()=>[b('guide','hopeful','ดัดแปลงได้ดีมาก ที่พักไม่พัง')]},
+    {text:'รวมทุกคนไว้ด้วยกัน ไม่ให้ใครออกไปคนเดียว',dom:'S',eff:()=>{S.groupMorale+=9;},out:()=>[b('pla','relieved','อยู่ด้วยกัน ไม่กลัวเลย แม้พายุใหญ่แค่ไหน')]},
+    {text:'ออกคำสั่งชัดเจน ทุกคนรู้หน้าที่ก่อนพายุถึง',dom:'E',eff:()=>{S.groupMorale+=6;S.health+=3;},out:()=>[b('guide','calm','ทีมลงมือพร้อมกัน ไม่มีสับสน')]},
+    {text:'ตรวจสอบทุกอย่างเป็นระบบ ไม่ให้ตกหล่น',dom:'C',eff:()=>{S.supplies+=5;S.health+=3;},out:()=>[b('guide','calm','ตรวจครบ ไม่มีอะไรพังหรือหายเกิน')]},
+  ]},
+// ---- จุด 6: เห็นไม่ตรงกัน ----
+{ intro:(ST)=>{const arr=[
+    b('guide','worried','ปัญหาใหม่: บางคนอยากเดินหาทางออก บางคนอยากรอกู้ภัยตรงนี้','cliff',false)];
+    if(ST.groupMorale<60)arr.push(b('pla','sad','ทุกคนเถียงกันอยู่ บรรยากาศตึงมาก'));
+    else arr.push(b('pla','brave','หนูเชื่อใจพี่ ไม่ว่าจะตัดสินใจอะไรก็ตาม'));
+    arr.push(b('you',null,'ทีมกำลังแตกความเห็น — เธอจะรับมือความเห็นไม่ตรงกันอย่างไร?'));return arr;},
+  choices:()=>[
+    {text:'ลองสำรวจเส้นทางเดินก่อน ประเมินจากสิ่งที่เห็นจริง',dom:'R',eff:()=>S.hope+=5,out:()=>[b('guide','calm','ได้ข้อมูลจริง ทำให้ตัดสินใจได้ดีขึ้น')]},
+    {text:'วิเคราะห์ข้อดีข้อเสียแต่ละทาง โอกาสและความเสี่ยง',dom:'I',eff:()=>S.hope+=9,out:()=>[b('guide','calm','เห็นภาพชัดขึ้น ทุกคนเข้าใจตรงกันมากขึ้น')]},
+    {text:'เสนอทางที่สามที่ยังไม่มีใครคิดถึง',dom:'A',eff:()=>{S.groupMorale+=9;S.hope+=7;},out:()=>[b('pla','relieved','ทุกคนหายเถียงกัน เพราะทางใหม่ดีกว่า')]},
+    {text:'รับฟังทุกความกังวลก่อน ให้ทุกคนรู้สึกถูกได้ยิน',dom:'S',eff:()=>S.groupMorale+=11,out:()=>[b('pla','relieved','แค่รู้สึกว่าถูกฟัง ทุกคนเปิดใจร่วมมือมากขึ้น')]},
+    {text:'ตัดสินใจและนำกลุ่มไปตามทางที่เลือก',dom:'E',eff:()=>{S.groupMorale+=6;S.hope+=5;},out:()=>[b('guide','calm','ทีมต้องการผู้นำ การตัดสินใจชัดทำให้ทุกคนขยับ')]},
+    {text:'เปรียบเทียบอย่างเป็นระบบ บันทึกเหตุผลให้ทุกคนเห็น',dom:'C',eff:()=>{S.groupMorale+=6;S.hope+=6;},out:()=>[b('guide','calm','มีหลักฐานชัด ทุกคนเห็นตรงกัน ความขัดแย้งลด')]},
+  ]},
+// ---- จุด 7: เสบียงร่อยหรอ (dilemma ตามหลัง) ----
+{ intro:(ST)=>[
+    b('guide','worried',`เสบียงเหลือ ${Math.max(10,Math.round(ST.supplies))}% ยังไม่รู้ว่าจะช่วยมาเมื่อไหร่`,'cave',true),
+    b('pla','sad','ทุกคนหิวกันอยู่ ยิ่งเห็นของน้อย ยิ่งกลัว'),
+    b('you',null,'เสบียงร่อยหรอ ทุกคนกดดัน — เธอจะจัดการอย่างไร?'),
+  ],
+  choices:()=>[
+    {text:'ออกหาเพิ่มทันที ไม่รอ',dom:'R',eff:()=>{S.supplies+=18;S.health-=5;},out:()=>[b('guide','calm','ได้มาเพิ่ม แต่เหนื่อยมาก')]},
+    {text:'คำนวณว่าเหลือใช้ได้กี่วัน วางแผนสิ่งที่ต้องทำ',dom:'I',eff:()=>S.hope+=9,out:()=>[b('guide','calm','รู้ชัดแล้ว ทำให้จัดสรรได้ถูกต้อง')]},
+    {text:'คิดวิธีหาแหล่งอาหาร/น้ำใหม่ที่ยังไม่เคยลอง',dom:'A',eff:()=>S.supplies+=14,out:()=>[b('pla','relieved','ไม่คิดว่าจะมีทาง แต่มีจริง ๆ')]},
+    {text:'แบ่งให้คนที่ต้องการมากที่สุดก่อน',dom:'S',eff:()=>{S.groupMorale+=9;S.health+=4;},out:()=>[b('pla','relieved','ทุกคนรู้สึกว่าถูกดูแล แม้ของจะน้อย')]},
+    {text:'ประกาศมาตรการจัดสรรที่ทุกคนต้องทำตาม',dom:'E',eff:()=>{S.groupMorale+=5;S.supplies+=3;},out:()=>[b('guide','calm','ชัดเจน ทุกคนรู้ว่าจะได้ส่วนแบ่งยังไง')]},
+    {text:'ทำตารางจัดสรรวันต่อวัน ป้องกันการสูญเปล่า',dom:'C',eff:()=>S.supplies+=11,out:()=>[b('guide','calm','มีระบบ ของยืดได้นานกว่าที่คิด')]},
+  ]},
+// ---- จุด 8: เจอร่องรอย ----
+{ intro:(ST)=>{const arr=[
+    b('guide','hopeful','เจอซากสิ่งก่อสร้างเก่า มีคนเคยอยู่ที่นี่มาก่อน','ruin',false)];
+    S.foundRuins=true;
+    arr.push(b('pla','relieved','นี่หมายความว่ามีคนรู้ว่าเกาะนี้มีอยู่ไหมพี่?'));
+    arr.push(b('you',null,'ร่องรอยของคนที่ผ่านมาก่อน — เธอจะทำอะไรกับข้อมูลนี้?'));return arr;},
+  choices:()=>[
+    {text:'ค้นหาทันที ดูว่ามีอะไรที่ยังใช้ประโยชน์ได้',dom:'R',eff:()=>S.supplies+=12,out:()=>[b('guide','hopeful','เจอของที่ยังใช้งานได้ โชคดีมาก')]},
+    {text:'ศึกษาวิเคราะห์ว่าซากนี้บอกอะไรบ้าง',dom:'I',eff:()=>{S.hope+=11;},out:()=>[b('guide','hopeful','ได้ข้อมูลสำคัญมาก ช่วยวางแผนต่อได้ดีขึ้น')]},
+    {text:'จินตนาการว่าคนเหล่านั้นใช้สถานที่ยังไง ประยุกต์ดู',dom:'A',eff:()=>{S.hope+=7;S.supplies+=7;},out:()=>[b('pla','relieved','มองออกเลย พี่คิดต่างมุมได้ดีมาก')]},
+    {text:'บอกทุกคน ให้กลุ่มรู้สึกมีความหวังมากขึ้น',dom:'S',eff:()=>{S.groupMorale+=11;S.hope+=5;},out:()=>[b('pla','relieved','ทุกคนดีใจมาก มีกำลังใจสู้ต่อแล้ว')]},
+    {text:'ใช้ข้อมูลที่ได้วางแผนขั้นต่อไป',dom:'E',eff:()=>{S.hope+=9;S.groupMorale+=5;},out:()=>[b('guide','calm','มีแผนชัด ทุกคนรู้ว่าจะทำอะไรต่อ')]},
+    {text:'บันทึกข้อมูลทั้งหมดที่พบอย่างเป็นระบบ',dom:'C',eff:()=>{S.hope+=7;S.supplies+=4;},out:()=>[b('guide','calm','ข้อมูลครบ ใช้อ้างอิงได้ตลอด')]},
+  ]},
+// ---- จุด 9: ส่งสัญญาณ ----
+{ intro:(ST)=>{const arr=[
+    b('guide',ST.foundRuins?'hopeful':'calm',
+      ST.foundRuins?'ข้อมูลจากซากบอกว่าเส้นทางเรือผ่านใกล้นี้ โอกาสดี':'ขึ้นที่สูงได้แล้ว มีโอกาสส่งสัญญาณ','peak',false)];
+    arr.push(b('pla',ST.groupMorale>55?'brave':'sad',ST.groupMorale>55?'พี่ทำได้แน่ หนูจะช่วย!':'หนูหวังว่าจะมีคนเห็น...'));
+    arr.push(b('you',null,'โอกาสส่งสัญญาณขอความช่วยเหลือ — เธอจะทำอย่างไร?'));
+    S.signalSent=true;return arr;},
+  choices:()=>[
+    {text:'ก่อกองไฟใหญ่ด้วยตัวเองทันที',dom:'R',eff:()=>{S.hope+=9;S.health-=3;},out:()=>[b('guide','hopeful','ไฟใหญ่มาก มองเห็นได้ไกล')]},
+    {text:'วิเคราะห์ว่าเวลาไหน/จุดไหนส่งสัญญาณได้ดีที่สุด',dom:'I',eff:()=>S.hope+=12,out:()=>[b('guide','hopeful','เลือกเวลาถูก เพิ่มโอกาสให้คนเห็น')]},
+    {text:'คิดวิธีส่งสัญญาณที่ดึงดูดสายตาได้มากที่สุด',dom:'A',eff:()=>S.hope+=14,out:()=>[b('pla','relieved','ไม่มีในคู่มือแต่ดึงดูดสายตาได้ดีมาก')]},
+    {text:'ให้ทุกคนมีส่วนร่วม ไม่ทำคนเดียว',dom:'S',eff:()=>{S.groupMorale+=8;S.hope+=8;},out:()=>[b('pla','relieved','ทำด้วยกัน มีกำลังใจมากกว่าทำคนเดียว')]},
+    {text:'บัญชาการการส่งสัญญาณ ทุกคนทำพร้อมกัน',dom:'E',eff:()=>{S.hope+=10;S.groupMorale+=5;},out:()=>[b('guide','hopeful','ทีมลงมือพร้อมกัน ได้ผลดีกว่าต่างคนต่างทำ')]},
+    {text:'วางแผนส่งสัญญาณเป็นกะหมุนเวียน ครอบคลุมทุกเวลา',dom:'C',eff:()=>S.hope+=10,out:()=>[b('guide','calm','ครอบคลุมทุกช่วงเวลา โอกาสให้คนพบสูงขึ้น')]},
+  ]},
+// ---- จุด 10: ขวัญทีมตก ----
+{ intro:(ST)=>{const arr=[
+    b('pla','sad','พี่... ทุกคนเหนื่อยมากแล้ว บางคนเริ่มร้องไห้ตอนกลางคืน','night',false)];
+    if(ST.groupMorale<50)arr.push(b('guide','worried','ถ้าขวัญทีมพัง โอกาสรอดลดลงมาก ต้องจัดการตอนนี้'));
+    else arr.push(b('guide','calm','ทุกคนยังพอไหว แต่ต้องดูแลกัน'));
+    arr.push(b('you',null,'ทีมกำลังสูญเสียความหวัง — เธอจะทำอะไร?'));return arr;},
+  choices:()=>[
+    {text:'ออกไปทำอะไรเป็นรูปธรรม ให้ทุกคนเห็นว่ายังมีความก้าวหน้า',dom:'R',eff:()=>{S.groupMorale+=7;S.hope+=5;},out:()=>[b('pla','relieved','พอเห็นว่ายังมีสิ่งที่ทำได้ ทุกคนใจชื้นขึ้น')]},
+    {text:'วิเคราะห์และแชร์ข้อมูลที่แสดงว่าสถานการณ์ยังพอไหว',dom:'I',eff:()=>{S.groupMorale+=8;S.hope+=8;},out:()=>[b('guide','calm','ข้อมูลจริงทำให้คนกลัวน้อยลง')]},
+    {text:'สร้างบรรยากาศ ทำอะไรที่ทำให้ทุกคนรู้สึกดีขึ้น',dom:'A',eff:()=>{S.groupMorale+=12;S.hope+=5;},out:()=>[b('pla','relieved','ไม่คิดว่าจะรู้สึกดีได้ตอนนี้ แต่มันได้ผลจริง ๆ')]},
+    {text:'นั่งรับฟัง ให้ทุกคนได้ระบาย ไม่ตัดสิน',dom:'S',eff:()=>S.groupMorale+=11,out:()=>[b('pla','relieved','แค่รู้สึกว่ามีคนฟัง ทุกคนเบาลงมาก')]},
+    {text:'พูดสร้างขวัญ ประกาศแผนต่อไปให้ชัด',dom:'E',eff:()=>{S.groupMorale+=8;S.hope+=5;},out:()=>[b('guide','calm','มีความหวัง ทุกคนรู้ว่าสิ่งที่ดีกว่ากำลังมา')]},
+    {text:'ทบทวนสิ่งที่ผ่านมา บอกว่าอะไรได้ผล วางแผนปรับต่อ',dom:'C',eff:()=>{S.groupMorale+=6;S.hope+=7;},out:()=>[b('guide','hopeful','มีหลักฐานว่าผ่านอะไรมาได้บ้าง ทำให้มั่นใจขึ้น')]},
+  ]},
+// ---- จุด 11: เห็นเรือผ่าน (จุดสุดท้าย) ----
+{ intro:(ST)=>[
+    b('pla','panic','พี่! มีเรือ! เห็นไฟอยู่ข้างนอก รีบทำอะไรสักอย่าง!','beach',false),
+    b('guide',ST.signalSent?'hopeful':'calm',ST.signalSent?'สัญญาณที่ส่งก่อนหน้าอาจช่วยได้ รีบเลย':'ต้องทำให้เขามองเห็นเราตอนนี้'),
+    b('you',null,'โอกาสสุดท้าย เรือกำลังผ่านมา — เธอจะทำอะไรเป็นอย่างสุดท้าย?'),
+  ],
+  choices:()=>[
+    {text:'วิ่งลงหาด ตะโกน โบกมือ ทำทุกอย่างทันที',dom:'R',eff:()=>S.hope+=10,out:()=>[b('guide','hopeful','ลงมือทันที เรือเริ่มเปลี่ยนทิศ')]},
+    {text:'ประเมินระยะและโอกาสที่เรือจะมองเห็น',dom:'I',eff:()=>S.hope+=9,out:()=>[b('guide','calm','รู้ชัด ทำสัญญาณที่มีประสิทธิภาพสูงสุด')]},
+    {text:'สร้างสัญญาณที่แตกต่างจากปกติ ให้สะดุดตาที่สุด',dom:'A',eff:()=>S.hope+=14,out:()=>[b('pla','relieved','ไม่เคยเห็นใครทำแบบนี้ แต่ดึงดูดสายตาสุด')]},
+    {text:'ให้ทุกคนมีส่วนร่วมในโอกาสนี้ด้วยกัน',dom:'S',eff:()=>{S.groupMorale+=8;S.hope+=8;},out:()=>[b('pla','relieved','ทำด้วยกัน พลังงานรวมกันมหาศาลมาก')]},
+    {text:'บัญชาการสัญญาณรวมพลัง ทุกคนทำพร้อมกัน',dom:'E',eff:()=>{S.groupMorale+=6;S.hope+=10;},out:()=>[b('guide','hopeful','ทีมลงมือเป็นหนึ่งเดียว ประทับใจมาก')]},
+    {text:'ตรวจสอบอุปกรณ์ทั้งหมด ส่งสัญญาณเป็นลำดับ',dom:'C',eff:()=>{S.hope+=8;S.groupMorale+=5;},out:()=>[b('guide','hopeful','ครบทุกอย่าง ไม่มีอะไรตกหล่น')]},
+  ]},
+];
+
+/* FLOW */
+assertDomains();
+preloadAssets();
+$("startBtn").onclick=()=>{initAudio();if(actx&&actx.state==='suspended')actx.resume();
+  $("start").classList.remove('show');updateHUD();runCrisis(0);};
+
+function runCrisis(i){
+  if(i>=CRISES.length){ending();return;}
+  showEventImage(i);
+  const prompt=i===7?'เสบียงร่อยหรอ เธอจะ?':'เธอจะทำอะไร?';
+  play(CRISES[i].intro(S),()=>ask(prompt,CRISES[i].choices(),()=>afterChoice(i)));}
+
+function afterChoice(i){
+  if(i===7){runDilemma(()=>runCrisis(8));return;}
+  if(i===5){showCheckpoint('— ครึ่งทางแรก —',
+    `ผ่านมา 6 สถานการณ์แล้ว แนวที่โน้มไปตอนนี้: <b style="color:${TYPE[analyze().code[0]].c}">${TYPE[analyze().code[0]].th}</b> — ยังมีอีก 6 สถานการณ์`,
+    ()=>runCrisis(6));return;}
+  if(i===9){showCheckpoint('— จุดเปลี่ยน —',
+    `เกือบถึงแล้ว แนวหลักตอนนี้: <b style="color:${TYPE[analyze().code[0]].c}">${TYPE[analyze().code[0]].th}</b> — เหลืออีก 2 สถานการณ์สุดท้าย`,
+    ()=>runCrisis(10));return;}
+  runCrisis(i+1);}
+
+function showCheckpoint(head,html,next){
+  $("cpHead").textContent=head;$("cpText").innerHTML=html;
+  $("cp").classList.add('show');
+  $("cpNext").onclick=()=>{$("cp").classList.remove('show');next();};}
+
+function runDilemma(next){
+  const plaIn=S.plaHurt;
+  play([
+    b('guide','worried','เสบียงเหลือน้อย แต่มีสองสิ่งที่ต้องการเหมือนกัน เลือกได้อันเดียว','cave',true),
+    b(plaIn?'pla':'guide',plaIn?'sad':'calm',
+      plaIn?'พี่... ปลาเจ็บอยู่ ต้องการแรงมากกว่าคนอื่น':'ทั้งสองทางมีเหตุผล คำตอบไม่ผิดไม่ถูก'),
+  ],()=>{
+    $("dlgWrap").style.display='none';
+    const box=$("choices");box.innerHTML=`<div class="ask">เธอจะแบ่งเสบียงที่เหลือให้ใคร?</div>`;
+    [['weak','ให้คนอ่อนแอที่สุดก่อน'+(plaIn?' (รวมปลา)':''),'เธอให้น้ำหนักกับคนตรงหน้าและความใส่ใจที่มีอยู่จริง'],
+     ['strong','เก็บไว้ให้คนที่จะออกหาความช่วยเหลือ','เธอให้น้ำหนักกับโอกาสรอดของทั้งกลุ่มในระยะยาว']]
+    .sort(()=>Math.random()-.5).forEach(([k,label,note])=>{
+      const bt=document.createElement('button');bt.className='ch';bt.textContent=label;
+      bt.onclick=()=>{pick();valuesChoice={k,note};box.classList.remove('show');$("dlgWrap").style.display='block';
+        play([b('guide','calm','...บันทึกการตัดสินใจแล้ว ไม่มีคำตอบถูกหรอก มีแต่คำตอบที่เป็นเธอ')],next);};
+      box.appendChild(bt);});
+    box.classList.add('show');});}
+
+/* SCORING — คัดลอกจาก thara9-vn.html ทุกตัวอักษร */
+function analyze(){
+  const ranked=DIMS.slice().sort((a,b)=>tally[b]-tally[a]),code=ranked.slice(0,3);
+  const vals=DIMS.map(d=>tally[d]),diff=Math.max(...vals)-Math.min(...vals);
+  const primary=code[0],nb=[DIMS[(HEX[primary]+1)%6],DIMS[(HEX[primary]+5)%6]];
+  const secondary=code.slice(1).filter(d=>!nb.includes(d)),doors=nb.filter(d=>!code.includes(d));
+  return {code,diff,primary,secondary,doors,flat:diff<=1};
+}
+function hexSVG(size){const c=size/2,R=size*.34,ang=i=>(-90+60*i)*Math.PI/180,v=(i,r)=>[c+r*Math.cos(ang(i)),c+r*Math.sin(ang(i))];
+  const mx=Math.max(1,...DIMS.map(d=>tally[d])),pts=DIMS.map((d,i)=>v(i,R*Math.max(.12,tally[d]/mx)));
+  let s=`<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">`;
+  [.34,.67,1].forEach(g=>s+=`<polygon points="${DIMS.map((_,i)=>v(i,R*g).join(",")).join(" ")}" fill="none" stroke="#ffffff14"/>`);
+  s+=`<polygon points="${pts.map(p=>p.join(",")).join(" ")}" fill="#40e8b022" stroke="#40e8b0" stroke-width="2.5" stroke-linejoin="round"/>`;
+  DIMS.forEach((d,i)=>{const[px,py]=pts[i],[lx,ly]=v(i,R+18);s+=`<circle cx="${px}" cy="${py}" r="5" fill="${TYPE[d].c}"/>
+    <text x="${lx}" y="${ly+4}" text-anchor="middle" font-size="13" font-weight="700" fill="${TYPE[d].c}">${d}</text>`;});
+  return s+`</svg>`;}
+
+function ending(){
+  ding();
+  const story=[];
+  story.push(b('guide','hopeful','เรือมาแล้ว ทุกคนปลอดภัย การเดินทางนี้มันหนักมาก','beach',false));
+  if(S.plaHurt)story.push(b('pla','relieved','ขาปลาดีขึ้นแล้ว แต่มันจะเป็นรอยที่จำว่าเราผ่านอะไรมาด้วยกัน'));
+  else story.push(b('pla','relieved','หนูยืนอยู่ข้าง ๆ พี่จนจบเลย ขอบคุณนะ'));
+  if(S.foundRuins)story.push(b('guide','hopeful','ซากที่พบ ช่วยให้เราส่งสัญญาณได้ถูกทิศทางเลย'));
+  if(valuesChoice)story.push(b('guide','calm','การตัดสินใจครั้งสำคัญของเธอ: '+valuesChoice.note));
+  story.push(b('guide','calm','อยากรู้ไหมว่าการเดินทางนี้บอกอะไรเกี่ยวกับตัวเธอบ้าง?'));
+  play(story,showResult);}
+
+function showResult(){
+  const r=analyze();$("dlgWrap").style.display='none';$("char").style.opacity=0;
+  const PROFILE={
+    R:{label:'สายลงมือทำ',desc:'เรียนรู้ผ่านการลงมือทำจริง ชอบเห็นผลลัพธ์ที่จับต้องได้ เมื่อเจอปัญหาสัญชาตญาณแรกคือ "แก้เลย" ไม่รอ'},
+    I:{label:'สายวิเคราะห์',desc:'ชอบเข้าใจว่า "ทำไม" ก่อนลงมือ สนุกกับการหาคำตอบ ข้อมูลคือสิ่งที่ทำให้รู้สึกมั่นใจ'},
+    A:{label:'สายสร้างสรรค์',desc:'มองหาวิธีใหม่ที่ไม่เหมือนใคร ชอบแสดงออกและสร้างสิ่งที่คนอื่นยังไม่คิดถึง'},
+    S:{label:'สายดูแลคน',desc:'ใส่ใจคนรอบข้าง สุขที่ได้ช่วยเหลือ มีความสามารถในการสร้างความสัมพันธ์ที่ดี'},
+    E:{label:'สายนำและโน้มน้าว',desc:'กล้าตัดสินใจและขับเคลื่อนให้สิ่งต่าง ๆ เกิดขึ้นจริง ชอบมีเป้าหมายชัดและทำให้ทีมเดินหน้า'},
+    C:{label:'สายจัดระบบ',desc:'ชอบความเป็นระเบียบและแม่นยำ ทำงานเชื่อถือได้ ไม่ชอบให้อะไรตกหล่น'},
+  };
+  const grpCard=(d,tag,dim)=>`
+    <div class="grp" style="${dim?'opacity:.6':''}">
+      <div class="gbar" style="background:${TYPE[d].c}"></div>
+      <div style="flex:1">
+        <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap">
+          <b>${GROUP[d].name}</b>
+          <span class="tag" style="background:${TYPE[d].c}22;color:${TYPE[d].c}">${tag}</span>
+        </div>
+        <div class="fac" style="margin-top:2px">${GROUP[d].fac}</div>
+        <div style="font-size:10.5px;color:#7fb8a0;margin-top:2px">อาชีพ: ${GROUP[d].jobs}</div>
+        <div style="font-size:11px;color:#b0d8c8;margin-top:3px">
+          <span style="color:${TYPE[d].c}">แข็ง:</span> ${GROUP[d].strength} &nbsp;·&nbsp;
+          <span style="color:${TYPE[d].c}">พัฒนา:</span> ${GROUP[d].grow}
+        </div>
+      </div>
+    </div>`;
+  const reasonHTML=`
+    <div id="reasonBox" style="display:none;margin-top:8px">
+      <div class="vnote">
+        <b style="color:var(--glow)">วิธีนับ</b><br>
+        เราดูว่าเธอ <em>ลงมือทำ</em> แบบไหนบ่อยสุดในแต่ละสถานการณ์ ไม่ใช่ถามว่า "คิดว่าตัวเองเป็นคนแบบไหน"<br><br>
+        จำนวนครั้งที่เลือกแต่ละแนว (จาก 12 สถานการณ์):<br>
+        ${DIMS.map(d=>`<span style="color:${TYPE[d].c}">${TYPE[d].th} ${tally[d]}</span>`).join(' · ')}<br><br>
+        ${r.flat?'เธอเลือกกระจายหลายแนว ยังไม่มีอันที่โดดเด่นชัด — <b>เรื่องนี้ปกติมากสำหรับวัยนี้</b> ยังสำรวจได้เรื่อย ๆ':'เรียงจากมากสุด 3 อันดับแรกคือแนวที่โน้มไป'}
+      </div>
+    </div>
+    <button class="btn alt" onclick="const b=document.getElementById('reasonBox');b.style.display=b.style.display==='none'?'block':'none';this.textContent=b.style.display==='none'?'ดูเหตุผลการคำนวณ ▼':'ซ่อน ▲'">ดูเหตุผลการคำนวณ ▼</button>`;
+  const tcasFacs=[...new Set([r.primary,...r.secondary].flatMap(d=>GROUP[d].fac.split(' · ')))].slice(0,6);
+  const tcasHTML=`
+    <button class="btn alt" style="margin-top:6px" onclick="document.getElementById('tcasBox').style.display='block';this.style.display='none'">เช็กโอกาสติด (TCAS) ▶</button>
+    <div id="tcasBox" style="display:none" class="vnote">
+      <b style="color:var(--glow)">คณะที่น่าสำรวจ</b><br>
+      ${tcasFacs.map(f=>`• ${f}`).join('<br>')}
+      <br><br><span style="color:#7fb8a0;font-size:10px">// 🔌 จุดเชื่อมจริงกับ TCAS calculator</span>
+    </div>`;
+  const topProfiles=r.code.slice(0,3).map(d=>`
+    <div style="padding:10px 0;border-top:1px solid #0a3820">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <span style="font-size:11px;padding:2px 8px;border-radius:20px;background:${TYPE[d].c}22;color:${TYPE[d].c}">${TYPE[d].th}</span>
+        <b style="color:${TYPE[d].c}">${PROFILE[d].label}</b>
+      </div>
+      <div style="font-size:13px;color:#d0f0e0;line-height:1.6">${PROFILE[d].desc}</div>
+    </div>`).join('');
+  $("card").innerHTML=`
+    <div style="text-align:center;padding-bottom:8px">
+      <div class="codeword">การเดินทางนี้เธอโน้มเอียงไปทาง</div>
+      <div class="code">${r.code.map(d=>`<span style="color:${TYPE[d].c}">${d}</span>`).join('')}</div>
+      <div class="codeword">${r.code.map(d=>TYPE[d].th).join(' · ')}</div>
+      ${hexSVG(210)}
+    </div>
+    ${r.flat?`<div class="vnote">เธอเลือกกระจายหลายแนว ความสนใจยังไม่ตกผลึก — <b>ปกติมากสำหรับวัยนี้</b> ใช้เป็นจุดเริ่มต้นสำรวจตัวเองต่อไป</div>`:''}
+    <div style="margin-bottom:8px">${topProfiles}</div>
+    <div>${grpCard(r.primary,'เข้ากันสูง')}${r.secondary.map(d=>grpCard(d,'น่าสำรวจ')).join('')}${r.doors.map(d=>grpCard(d,'ประตูข้างเคียง',true)).join('')}</div>
+    ${valuesChoice?`<div class="vnote" style="margin-top:8px"><b style="color:var(--glow)">ค่านิยมที่เผย</b> <span style="font-size:11px;color:#7fb8a0">(วัดแยกจากความสนใจ)</span><br>${valuesChoice.note}</div>`:''}
+    ${reasonHTML}
+    ${tcasHTML}
+    <div class="fnote" style="margin-top:10px">
+      นี่คือ "แนวที่เธอโน้มไป" จากสิ่งที่เลือกทำในเรื่อง ไม่ใช่คำตัดสินว่าเธอ "เป็น" คนแบบไหน ·
+      ยังไม่รวมความถนัด คะแนนสอบ หรือปัจจัยส่วนตัวอื่น ·
+      เล่นซ้ำเพื่อดูว่าถ้าเลือกต่างกัน ผลจะเปลี่ยนไหม
+    </div>
+    <button class="btn" id="again" style="margin-top:10px">เล่นใหม่</button>`;
+  $("result").classList.add('show');
+  // 🔌 จุดต่อระบบเก็บข้อมูลกลาง
+  const RESULT={game:'island',ts:Date.now(),tally:{...tally},code:r.code,values:valuesChoice,log:behaviorLog};
+  console.log('RESULT',RESULT);
+  $("again").onclick=()=>location.reload();}
+
+// ── Parallax — ฉากเลื่อนเบา ๆ ตาม mouse / deviceorientation ─────────────────
+;(()=>{
+  let tx=0,ty=0,cx=0,cy=0;
+  const MAX=3, L=.08;
+  const lerp=(a,b,t)=>a+(b-a)*t;
+  (function loop(){
+    if(reducedMotion){tx=ty=cx=cy=0;}
+    cx=lerp(cx,tx,L);cy=lerp(cy,ty,L);
+    const g=$('bgArt');
+    if(g)g.style.transform=reducedMotion?'':`translate(${cx.toFixed(2)}px,${cy.toFixed(2)}px)`;
+    requestAnimationFrame(loop);
+  })();
+  window.addEventListener('mousemove',e=>{
+    if(reducedMotion)return;
+    tx=(e.clientX/window.innerWidth-.5)*MAX*2;
+    ty=(e.clientY/window.innerHeight-.5)*MAX*2;
+  },{passive:true});
+  window.addEventListener('deviceorientation',e=>{
+    if(reducedMotion)return;
+    tx=Math.min(MAX,Math.max(-MAX,(e.gamma||0)/45*MAX));
+    ty=Math.min(MAX,Math.max(-MAX,((e.beta||0)-45)/45*MAX));
+  },{passive:true});
+})();
+</script>
+</body>
+</html>
