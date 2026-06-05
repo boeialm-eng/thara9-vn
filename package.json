@@ -1,0 +1,17 @@
+{
+  "name": "thara9-image-gen",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "gen": "node generate.mjs"
+  },
+  "dependencies": {
+    "@fal-ai/client": "^1.10.1",
+    "@google/genai": "^2.7.0"
+  },
+  "description": "",
+  "main": "index.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

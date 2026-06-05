@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+<title>THARA-9 · Visual Novel</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Mali:wght@500;600;700&family=Orbitron:wght@600;800&family=Noto+Sans+Thai:wght@400;600;700&family=Share+Tech+Mono&display=swap');
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;}
+  :root{--ink:#eaf6ff;--glow:#46d8ff;--nut:#5bd6b0;--ari:#b98bff;--warn:#ff5d70;}
+  html,body{height:100%;}
+  body{font-family:'Noto Sans Thai',sans-serif;background:#04060d;color:var(--ink);overflow:hidden;}
+  #vn{position:relative;max-width:540px;height:100vh;margin:0 auto;overflow:hidden;}
+
+  /* BACKGROUND */
+  #bg{position:absolute;inset:0;transition:background .6s ease;overflow:hidden;}
+  #bgArt{position:absolute;inset:0;}
+  #eventArt{position:absolute;inset:0;z-index:1;opacity:0;transition:opacity 1.2s ease;pointer-events:none;}
+  #eventArt.show{opacity:1;}
+  #bg.alert::after{content:"";position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 40%,transparent 40%,rgba(255,40,60,.22));
+    animation:pulse 1.3s infinite;pointer-events:none;}
+  @keyframes pulse{50%{opacity:.4}}
+  .scan{position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.13) 0 1px,transparent 1px 3px);z-index:6;}
+  .vig{position:absolute;inset:0;pointer-events:none;box-shadow:inset 0 0 120px rgba(2,5,12,.85);z-index:5;}
+
+  /* HUD */
+  #hud{position:absolute;top:0;left:0;right:0;z-index:8;display:flex;gap:10px;align-items:center;
+    padding:8px 12px;font-family:'Share Tech Mono';font-size:10px;color:#9fd9f0;
+    background:linear-gradient(180deg,rgba(4,8,18,.8),transparent);}
+  .gauge{flex:1;}
+  .gauge .lab{letter-spacing:1px;opacity:.7;}
+  .gauge .bar{height:5px;background:#13233c;border-radius:3px;margin-top:2px;overflow:hidden;}
+  .gauge .fill{height:100%;border-radius:3px;transition:width .5s;}
+  #nutStat{white-space:nowrap;color:var(--nut);}
+  #mute{border:1px solid #1f3354;background:transparent;color:#9fd9f0;border-radius:7px;padding:3px 8px;font-family:'Share Tech Mono';font-size:10px;cursor:pointer;}
+
+  /* CHARACTER */
+  #char{position:absolute;left:50%;bottom:165px;transform:translateX(-50%);z-index:4;
+    width:230px;height:300px;display:flex;align-items:flex-end;justify-content:center;transition:opacity .3s;}
+  #char svg{filter:drop-shadow(0 8px 22px rgba(0,0,0,.5));}
+
+  /* DIALOGUE */
+  #dlgWrap{position:absolute;left:0;right:0;bottom:0;z-index:9;padding:10px;}
+  #namebox{display:inline-block;font-family:'Mali';font-weight:700;font-size:14px;padding:4px 16px;border-radius:10px 10px 0 0;
+    background:var(--glow);color:#04111a;margin-left:6px;}
+  #namebox.nut{background:var(--nut);} #namebox.ari{background:var(--ari);} #namebox.cap{background:#ffb547;}
+  #namebox.narr{display:none;}
+  #dlg{background:linear-gradient(180deg,rgba(10,18,34,.96),rgba(6,11,22,.97));
+    border:1px solid #2a4668;border-radius:0 14px 14px 14px;padding:15px 16px 16px;min-height:96px;
+    box-shadow:0 0 30px rgba(70,216,255,.12);font-size:15.5px;line-height:1.6;cursor:pointer;}
+  #dlg.narr-style{font-style:italic;color:#bcd6ec;}
+  #adv{position:absolute;right:18px;bottom:18px;color:var(--glow);font-size:13px;animation:bob 1s infinite;}
+  @keyframes bob{50%{transform:translateY(3px)}}
+
+  /* CHOICES */
+  #choices{position:absolute;left:0;right:0;bottom:0;z-index:11;padding:12px;display:none;flex-direction:column;gap:8px;
+    background:linear-gradient(0deg,rgba(4,8,18,.96) 70%,transparent);max-height:80%;overflow-y:auto;}
+  #choices.show{display:flex;}
+  .ask{font-family:'Mali';font-weight:600;font-size:14px;color:#cfe6f7;text-align:center;margin-bottom:2px;}
+  .ch{border:1px solid #2a4668;background:rgba(14,24,44,.92);border-radius:11px;padding:12px 14px;color:var(--ink);
+    font-family:'Noto Sans Thai';font-size:14px;line-height:1.4;text-align:left;cursor:pointer;transition:transform .07s,box-shadow .15s,background .15s;}
+  .ch:hover{background:rgba(26,42,74,.96);box-shadow:0 0 16px rgba(70,216,255,.2);border-color:var(--glow);}
+  .ch:active{transform:scale(.99);}
+
+  /* OVERLAYS */
+  .ov{position:absolute;inset:0;z-index:30;display:none;align-items:center;justify-content:center;padding:20px;
+    background:rgba(4,8,18,.82);backdrop-filter:blur(4px);}
+  .ov.show{display:flex;animation:fade .3s;} @keyframes fade{from{opacity:0}}
+  .box{background:linear-gradient(180deg,rgba(16,26,48,.97),rgba(9,15,30,.98));border:1px solid #2a4668;
+    border-radius:18px;padding:22px;max-width:460px;width:100%;text-align:center;box-shadow:0 0 44px rgba(70,216,255,.16);}
+  .box h1{font-family:'Orbitron';font-size:26px;color:var(--glow);margin-bottom:4px;text-shadow:0 0 20px rgba(70,216,255,.5);}
+  .box h2{font-family:'Orbitron';font-size:17px;color:var(--glow);margin-bottom:8px;}
+  .box p{font-size:14.5px;line-height:1.65;color:#d4e8f7;}
+  .btn{font-family:'Mali';font-weight:700;border:1px solid var(--glow);background:rgba(70,216,255,.14);color:#eafaff;
+    border-radius:11px;padding:13px 18px;font-size:15px;cursor:pointer;width:100%;margin-top:9px;box-shadow:0 0 18px rgba(70,216,255,.2);}
+  .btn:hover{background:rgba(70,216,255,.26);} .btn.alt{border-color:#2a4668;background:transparent;box-shadow:none;color:#9fd9f0;}
+
+  /* RESULT — position:fixed หลุดจาก #vn overflow:hidden ทำให้เลื่อนได้ */
+  #result{position:fixed;align-items:flex-start;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+  #result .box{overflow:visible;max-height:none;text-align:left;margin:20px auto;padding-bottom:28px;}
+  .code{font-family:'Orbitron';font-weight:800;font-size:44px;letter-spacing:8px;text-align:center;}
+  .codeword{font-size:12px;color:#7fa8c9;text-align:center;}
+  .grp{display:flex;gap:10px;padding:9px 0;border-top:1px solid #2a4668;}
+  .gbar{width:5px;border-radius:5px;} .grp b{font-size:14px;} .grp .fac{font-size:11px;color:#7fa8c9;line-height:1.5;}
+  .tag{font-size:9px;padding:2px 8px;border-radius:20px;white-space:nowrap;align-self:start;}
+  .vnote{font-size:12px;background:rgba(70,216,255,.08);border:1px solid #2a4668;border-radius:10px;padding:10px;margin-top:10px;line-height:1.55;}
+  .fnote{font-size:10.5px;color:#7fa8c9;line-height:1.6;margin-top:12px;}
+  #char img.sprite{height:100%;width:auto;object-fit:contain;border-radius:12px;
+    box-shadow:0 0 0 1px rgba(70,216,255,.12),0 12px 32px rgba(0,0,0,.6);
+    animation:floatIdle 4s ease-in-out infinite;}
+
+  /* ============================ MOTION / ANIMATION ========================= */
+  /* Ken Burns — ซูมเข้าช้า ๆ พร้อมเลื่อนเล็กน้อย ไม่ให้ขอบขาว */
+  @keyframes kenBurns{
+    from{transform:scale(1.03) translate(0,0)}
+    to  {transform:scale(1.08) translate(-10px,-6px)}
+  }
+  @keyframes kenBurns2{
+    from{transform:scale(1.08) translate(9px,5px)}
+    to  {transform:scale(1.03) translate(0,0)}
+  }
+  /* ใส่ ken burns บน img ภายใน #bgArt และ #eventArt */
+  #bgArt img{animation:kenBurns 28s ease-in-out infinite alternate;will-change:transform;}
+  #eventArt img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+    animation:kenBurns2 33s ease-in-out infinite alternate-reverse;will-change:transform;}
+
+  /* Float idle — ตัวละครลอยหายใจเบา ๆ */
+  @keyframes floatIdle{
+    0%,100%{transform:translateY(0px)}
+    50%    {transform:translateY(-5px)}
+  }
+
+  /* ปิดทั้งหมดเมื่อ JS toggle (.motion-reduced) หรือ OS preference */
+  #vn.motion-reduced #bgArt img,
+  #vn.motion-reduced #eventArt img,
+  #vn.motion-reduced #char img.sprite{animation:none!important;transform:none!important}
+
+  /* ============================ EFFECTS ==================================== */
+  /* shake — translate เล็กน้อย 0.5s แล้วหยุด */
+  @keyframes shakeFx{
+    0%,100%{transform:translate(0,0)}
+    12%{transform:translate(-3px,2px)}25%{transform:translate(3px,-2px)}
+    40%{transform:translate(-2px,3px)}55%{transform:translate(2px,-1px)}
+    70%{transform:translate(-1px,2px)}85%{transform:translate(1px,-1px)}
+  }
+  #vn.shake{animation:shakeFx .5s ease forwards}
+
+  /* flicker — กระพริบ 3 ครั้งใน 1.2s (<3Hz ปลอดภัย) แล้วหยุด */
+  @keyframes flickerFx{
+    0%,100%{opacity:0}
+    5%{opacity:.58}13%{opacity:0}
+    38%{opacity:.48}45%{opacity:0}
+    68%{opacity:.36}73%{opacity:0}
+  }
+  #fxOverlay{position:absolute;inset:0;z-index:28;pointer-events:none;background:#000;opacity:0}
+  #fxOverlay.flicker{animation:flickerFx 1.2s ease forwards}
+
+  /* glitch — ภาพเลื่อน/ซ้อนสี 0.45s แล้วหยุด */
+  @keyframes glitchFx{
+    0%,100%{transform:translateX(0);filter:none}
+    12%{transform:translateX(-4px);filter:saturate(3) hue-rotate(55deg) brightness(1.1)}
+    24%{transform:translateX(4px);filter:saturate(3) hue-rotate(-55deg)}
+    36%{transform:translateX(-2px);filter:brightness(.8) saturate(2)}
+    48%{transform:translateX(0);filter:none}
+  }
+  #bgArt.glitch{animation:glitchFx .45s ease forwards}
+
+  /* crack overlay — vignette แดง เมื่อ hull ต่ำ */
+  #crackOverlay{position:absolute;inset:0;z-index:7;pointer-events:none;opacity:0;transition:opacity 2s;
+    box-shadow:inset 0 0 80px rgba(255,40,60,.55),inset 0 0 40px rgba(255,20,30,.3)}
+  #crackOverlay.active{opacity:1}
+
+  /* dim overlay — หรี่จอ เมื่อ power ต่ำ (กระพริบช้า ~10s ต่อรอบ) */
+  @keyframes powerDimFx{
+    0%,78%,100%{opacity:.36}81%{opacity:.54}87%{opacity:.22}93%{opacity:.44}
+  }
+  #dimOverlay{position:absolute;inset:0;z-index:6;pointer-events:none;background:#000;opacity:0;transition:opacity 2s}
+  #dimOverlay.active{opacity:.38;animation:powerDimFx 10s 1s infinite}
+
+  /* calm-mode — ตอนโชว์ตัวเลือก: ไฟแดงนิ่ง ไม่กระพริบ */
+  #bg.alert.calm-mode::after{animation:none!important;opacity:.13!important}
+
+  /* reduce-motion toggle button */
+  #fxToggle{border:1px solid #1f3354;background:transparent;color:#46d8ff;border-radius:7px;
+    padding:3px 8px;font-family:'Share Tech Mono';font-size:10px;cursor:pointer;transition:color .2s,border-color .2s}
+  #fxToggle.off{color:#ff5d70;border-color:rgba(255,93,112,.4)}
+
+  /* OS-level prefers-reduced-motion: ปิดทุก animation อัตโนมัติ */
+  @media(prefers-reduced-motion:reduce){
+    #vn.shake,#fxOverlay.flicker,#bgArt.glitch,#dimOverlay.active{animation:none!important}
+    #bg.alert::after{animation:none!important;opacity:.2!important}
+    #bgArt img,#eventArt img,#char img.sprite{animation:none!important;transform:none!important}
+  }
+</style>
+</head>
+<body>
+<div id="vn">
+  <div id="bg"><div id="bgArt"></div><div id="eventArt"></div></div>
+  <div class="vig"></div><div class="scan"></div>
+  <div id="fxOverlay"></div>
+  <div id="crackOverlay"></div>
+  <div id="dimOverlay"></div>
+
+  <div id="hud">
+    <div class="gauge"><div class="lab">HULL</div><div class="bar"><div class="fill" id="g_hull" style="background:#ff7a4d"></div></div></div>
+    <div class="gauge"><div class="lab">PWR</div><div class="bar"><div class="fill" id="g_power" style="background:#46d8ff"></div></div></div>
+    <span id="nutStat">นัท: ปลอดภัย</span>
+    <button id="fxToggle" title="ลดเอฟเฟกต์">✦</button>
+    <button id="mute">♪</button>
+  </div>
+
+  <div id="char"></div>
+
+  <div id="dlgWrap">
+    <div id="namebox">—</div>
+    <div id="dlg">—<span id="adv">▼</span></div>
+  </div>
+
+  <div id="choices"></div>
+
+  <!-- START -->
+  <div class="ov show" id="start"><div class="box" style="background:linear-gradient(180deg,rgba(10,18,40,.97),rgba(6,11,24,.98));overflow:hidden;position:relative">
+    <img src="assets/key_title.png" onerror="this.style.display='none'" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.22;pointer-events:none">
+    <div style="position:relative;z-index:1">
+    <h1>THARA-9</h1>
+    <p style="color:#9fd9f0;font-family:'Share Tech Mono';font-size:12px;margin-bottom:10px">STATION CRISIS · VISUAL NOVEL</p>
+    <p>คืนนี้เธอเข้าเวรดึกบนสถานีวิจัยในวงโคจรดาวพฤหัส มีรุ่นน้องขี้ตื่นชื่อ <b style="color:var(--nut)">นัท</b>
+    กับ AI ยานปากดีชื่อ <b style="color:var(--ari)">ARI</b> เป็นเพื่อน<br><br>
+    แล้วบางอย่างก็เริ่มพังลง — <b>เลือกสิ่งที่เธออยากลงมือทำ</b> แล้วดูว่าสุดท้ายเธอคือลูกเรือแบบไหน</p>
+    <button class="btn" id="startBtn">▶ เริ่มเรื่อง</button>
+    <div class="fnote">12 วิกฤต · มีเสียงประกอบ · ภาพ AI anime sci-fi</div>
+  </div></div></div>
+
+  <!-- CHECKPOINT -->
+  <div class="ov" id="cp"><div class="box">
+    <h2 id="cpHead">— จบบท —</h2>
+    <p id="cpText"></p>
+    <button class="btn" id="cpNext">เล่นต่อ ▶</button>
+  </div></div>
+
+  <!-- RESULT -->
+  <div class="ov" id="result">
+    <div class="box" id="card" style="position:relative;overflow:hidden">
+      <img src="assets/card_bg.png" onerror="this.style.display='none'" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.12;pointer-events:none">
+    </div>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+
+/* ============================================================================
+   วาล์วกันเพี้ยน: ความ "กวน" อยู่ใน narration + ตัวละคร (ARI/นัท) เท่านั้น
+   ส่วน choice ทั้ง 6 เขียนกลาง ๆ จริงจัง สมดุล ไม่มี label ไม่มีมุก + สลับลำดับ
+   คะแนน = โดเมนที่เลือกล้วน ๆ · สถานะ(hull/นัท/ฯลฯ)ขับ "เรื่อง" ไม่ใช่ "คะแนน"
+   dilemma = ค่านิยม เก็บแยก · behaviorLog เก็บไว้ validate ไม่คิดคะแนน
+   ========================================================================== */
+const TYPE={R:{c:'#ff7a4d',th:'ลงมือทำ'},I:{c:'#36c9c9',th:'วิเคราะห์'},A:{c:'#c46bd6',th:'สร้างสรรค์'},
+  S:{c:'#ffc24d',th:'ดูแลคน'},E:{c:'#ff5d70',th:'นำ/สั่งการ'},C:{c:'#5d8bff',th:'จัดระบบ'}};
+const DIMS=['R','I','A','S','E','C'],HEX={R:0,I:1,A:2,S:3,E:4,C:5};
+const GROUP={
+ R:{name:'สายสร้าง / ลงมือทำ',
+    fac:'วิศวกรรม · เทคโนโลยี · เกษตร · สถาปัตย์(โครงสร้าง)',
+    jobs:'วิศวกร · นักพัฒนาซอฟต์แวร์ · ช่างเทคนิค · สถาปนิก · ผู้ประกอบการ',
+    desc:'เรียนรู้ผ่านการลงมือทำจริง ชอบเห็นผลลัพธ์ที่จับต้องได้ เมื่อเจอปัญหาสัญชาตญาณแรกคือ "แก้เลย"',
+    strength:'แก้ปัญหาเฉพาะหน้าเก่ง ทำจริงทำได้',grow:'ลองวางแผนก่อนลงมือบ้าง'},
+ I:{name:'สายวิเคราะห์ / ค้นคว้า',
+    fac:'วิทยาศาสตร์ · แพทย์/แล็บ · เภสัช · วิทยาการข้อมูล',
+    jobs:'นักวิทยาศาสตร์ · แพทย์ · นักวิจัย · Data Scientist · เภสัชกร',
+    desc:'ชอบเข้าใจว่า "ทำไม" ก่อนลงมือ สนุกกับการหาคำตอบ ข้อมูลคือเพื่อนที่ดีที่สุด',
+    strength:'คิดเป็นระบบ แก้ปัญหาด้วยข้อมูล',grow:'อย่าคิดจนไม่เริ่ม ลองลงมือก่อนบ้าง'},
+ A:{name:'สายสร้างสรรค์',
+    fac:'นิเทศ · ศิลปกรรม · สถาปัตย์(ออกแบบ) · ดิจิทัลมีเดีย',
+    jobs:'กราฟิกดีไซเนอร์ · UX Designer · ผู้กำกับ · นักโฆษณา · Content Creator',
+    desc:'มองหาวิธีใหม่ที่ไม่เหมือนใคร ชอบแสดงออกและสร้างสิ่งที่คนอื่นยังไม่คิดถึง',
+    strength:'ไอเดียสด ทำให้สิ่งธรรมดากลายเป็นสิ่งพิเศษ',grow:'ทำไอเดียให้เป็นจริงทีละขั้น'},
+ S:{name:'สายดูแล / เชื่อมคน',
+    fac:'พยาบาล · ครุศาสตร์ · จิตวิทยา · สหเวช',
+    jobs:'พยาบาล · ครู · นักจิตวิทยา · นักสังคมสงเคราะห์ · HR',
+    desc:'ใส่ใจคนรอบข้าง สุขที่ได้ช่วยเหลือ มีความสามารถในการสร้างความสัมพันธ์ที่ดี',
+    strength:'เข้าใจคน ทีมเวิร์กดี คนรอบข้างไว้วางใจ',grow:'ดูแลตัวเองด้วย ไม่ใช่แค่คนอื่น'},
+ E:{name:'สายนำ / โน้มน้าว',
+    fac:'บริหารธุรกิจ · นิติ · รัฐศาสตร์ · การตลาด',
+    jobs:'ผู้จัดการ · ทนายความ · นักการตลาด · ผู้ประกอบการ · นักการเมือง',
+    desc:'กล้าตัดสินใจและขับเคลื่อนให้สิ่งต่าง ๆ เกิดขึ้นจริง ชอบมีเป้าหมายชัดและทำให้ทีมเดินหน้า',
+    strength:'ผู้นำที่กล้าเสี่ยง ทำให้ทีมเคลื่อนไหว',grow:'ฟังทีมก่อนตัดสินใจให้มากขึ้น'},
+ C:{name:'สายจัดระบบ',
+    fac:'บัญชี · การเงิน · ระบบสารสนเทศ · โลจิสติกส์',
+    jobs:'นักบัญชี · นักการเงิน · นักวิเคราะห์ระบบ · Logistics Manager · ผู้ตรวจสอบ',
+    desc:'ชอบความเป็นระเบียบและแม่นยำ ทำงานได้เชื่อถือได้ ไม่ชอบให้อะไรตกหล่น',
+    strength:'รอบคอบ เชื่อถือได้ จัดการได้ครบ',grow:'ลองยืดหยุ่นกับการเปลี่ยนแปลงมากขึ้น'},
+};
+
+/* ============================ STATE ====================================== */
+let S={hull:80,power:60,playerHurt:false,nut:'unknown',trust:0,knownCause:false,morale:60,commsRestored:false,teamSynced:false};
+const tally={R:0,I:0,A:0,S:0,E:0,C:0}, behaviorLog=[]; let valuesChoice=null, choiceT0=0;
+
+/* ============================ ART (placeholder SVG — fallback) =========== */
+function faceNutSVG(expr){
+  // expr: neutral, panic, relieved, sad, brave
+  const E={neutral:{br:'M70 78 L92 78 M108 78 L130 78',eye:'norm',mo:'M88 108 Q100 113 112 108',extra:''},
+    panic:{br:'M68 70 L92 76 M108 76 L132 70',eye:'wide',mo:'M100 110 m-9 0 a9 9 0 1 0 18 0 a9 9 0 1 0 -18 0',extra:'<circle cx="128" cy="92" r="4" fill="#7fd0ff"/>'},
+    relieved:{br:'M70 76 Q81 72 92 76 M108 76 Q119 72 130 76',eye:'happy',mo:'M86 106 Q100 118 114 106'},
+    sad:{br:'M70 74 Q81 80 92 80 M108 80 Q119 74 130 74',eye:'norm',mo:'M88 112 Q100 106 112 112'},
+    brave:{br:'M70 74 L92 80 M108 80 L130 74',eye:'norm',mo:'M88 108 L112 108'}}[expr]||{};
+  const eyes = E.eye==='wide'
+    ? '<circle cx="81" cy="92" r="9" fill="#fff"/><circle cx="81" cy="92" r="5" fill="#23303f"/><circle cx="119" cy="92" r="9" fill="#fff"/><circle cx="119" cy="92" r="5" fill="#23303f"/>'
+    : E.eye==='happy'
+    ? '<path d="M73 94 Q81 86 89 94" stroke="#23303f" stroke-width="3" fill="none"/><path d="M111 94 Q119 86 127 94" stroke="#23303f" stroke-width="3" fill="none"/>'
+    : '<circle cx="81" cy="93" r="5" fill="#23303f"/><circle cx="119" cy="93" r="5" fill="#23303f"/>';
+  return `<svg width="200" height="270" viewBox="0 0 200 270">
+    <path d="M40 270 Q40 200 100 192 Q160 200 160 270 Z" fill="#2f9c84"/>
+    <path d="M62 270 L62 210 M138 270 L138 210" stroke="#23705f" stroke-width="3"/>
+    <rect x="86" y="176" width="28" height="26" rx="8" fill="#f0c49a"/>
+    <ellipse cx="100" cy="96" rx="58" ry="64" fill="#f5cda3"/>
+    <path d="M44 86 Q52 30 100 30 Q148 30 156 86 Q150 60 100 56 Q50 60 44 86Z" fill="#3a2a1c"/>
+    <path d="M44 92 Q40 70 52 60 Q48 84 60 92Z" fill="#3a2a1c"/>
+    ${eyes}
+    <path d="${E.br}" stroke="#3a2a1c" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    <path d="${E.mo}" stroke="#9c5a4a" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+    ${E.extra||''}</svg>`;
+}
+function faceAriSVG(mood){ // calm, smug, alert
+  const col=mood==='alert'?'#ff5d70':mood==='smug'?'#b98bff':'#46d8ff';
+  const eye=mood==='smug'?'M76 120 Q100 132 124 120':mood==='alert'?'M76 116 L124 116':'M76 118 Q100 126 124 118';
+  return `<svg width="200" height="270" viewBox="0 0 200 270">
+    <g transform="translate(100,135)">
+      <polygon points="0,-78 70,0 0,78 -70,0" fill="none" stroke="${col}" stroke-width="3" opacity=".5"/>
+      <polygon points="0,-52 48,0 0,52 -48,0" fill="${col}22" stroke="${col}" stroke-width="2.5"/>
+      <circle r="30" fill="${col}33" stroke="${col}" stroke-width="2"/>
+      <circle r="11" fill="${col}"/>
+    </g>
+    <path d="${eye}" transform="translate(0,12)" stroke="${col}" stroke-width="0"/>
+  </svg>`;
+}
+function faceCapSVG(){ return `<svg width="200" height="270" viewBox="0 0 200 270">
+  <path d="M40 270 Q40 196 100 188 Q160 196 160 270Z" fill="#3a4a66"/>
+  <ellipse cx="100" cy="96" rx="56" ry="62" fill="#e0b486"/>
+  <path d="M46 80 Q54 36 100 36 Q146 36 154 80 Q150 58 100 54 Q50 58 46 80Z" fill="#566"/>
+  <circle cx="82" cy="94" r="5" fill="#23303f"/><circle cx="118" cy="94" r="5" fill="#23303f"/>
+  <path d="M72 78 L92 80 M108 80 L128 78" stroke="#556" stroke-width="3" fill="none"/>
+  <path d="M86 116 Q100 122 114 116" stroke="#9c5a4a" stroke-width="3.5" fill="none"/></svg>`;}
+
+function bgArtSVG(loc){
+  const stars=Array.from({length:26},()=>`<circle cx="${20+Math.random()*500}" cy="${10+Math.random()*200}" r="${Math.random()*1.4+.4}" fill="#bfe6ff" opacity="${.3+Math.random()*.6}"/>`).join('');
+  const win=`<rect x="60" y="40" width="220" height="120" rx="8" fill="#050a16"/><g>${stars}</g>
+    <circle cx="250" cy="80" r="46" fill="#b98a5e"/><rect x="204" y="66" width="92" height="8" fill="#a9794e"/><rect x="204" y="86" width="92" height="7" fill="#caa274"/>`;
+  const A={
+   bridge:`<defs></defs><rect width="540" height="960" fill="#0c1626"/>${win}
+     <rect x="0" y="640" width="540" height="320" fill="#0a1322"/>
+     <rect x="40" y="660" width="180" height="80" rx="6" fill="#13233c"/><rect x="320" y="660" width="180" height="80" rx="6" fill="#13233c"/>
+     <rect x="60" y="678" width="140" height="10" fill="#46d8ff44"/><rect x="340" y="678" width="140" height="10" fill="#ff7a4d44"/>`,
+   moduleB:`<rect width="540" height="960" fill="#141320"/>
+     <rect x="0" y="0" width="540" height="60" fill="#3a2e10"/><rect x="0" y="0" width="540" height="60" fill="url(#h)"/>
+     <g stroke="#caa23a" stroke-width="0" >${Array.from({length:18}).map((_,i)=>`<rect x="${i*30}" y="20" width="16" height="20" fill="${i%2?'#caa23a':'#1a1a26'}"/>`).join('')}</g>
+     <path d="M380 300 L470 360 L420 460 L350 410 Z" fill="#050810"/><path d="M380 300 L470 360" stroke="#5fb0d0" stroke-width="2"/>
+     <rect x="40" y="200" width="20" height="500" fill="#1c2436"/>`,
+   corridor:`<rect width="540" height="960" fill="#1a0e12"/>
+     <polygon points="100,200 440,200 360,760 180,760" fill="#241016"/>
+     <polygon points="160,260 380,260 330,700 210,700" fill="#150a0e"/>
+     ${Array.from({length:5}).map((_,i)=>`<rect x="${120+i*8}" y="${260+i*90}" width="300" height="6" fill="#ff6a3a22"/>`).join('')}`,
+   medbay:`<rect width="540" height="960" fill="#0c1a1e"/><rect x="0" y="0" width="540" height="960" fill="#0e2a2e22"/>
+     <rect x="120" y="520" width="300" height="120" rx="10" fill="#15333a"/><rect x="140" y="500" width="60" height="30" rx="6" fill="#1d4750"/>
+     <path d="M250 200 h40 v25 h25 v40 h-25 v25 h-40 v-25 h-25 v-40 h25 z" fill="#54e6a877"/>`,
+   reactor:`<rect width="540" height="960" fill="#0a0f1e"/>
+     <circle cx="270" cy="360" r="120" fill="#1b2b50"/><circle cx="270" cy="360" r="80" fill="#2a4a8a"/><circle cx="270" cy="360" r="44" fill="#7fb0ff"/>
+     <g stroke="#3a5a9a" stroke-width="6">${Array.from({length:8}).map((_,i)=>{const a=i*45*Math.PI/180;return `<line x1="${270+Math.cos(a)*120}" y1="${360+Math.sin(a)*120}" x2="${270+Math.cos(a)*200}" y2="${360+Math.sin(a)*200}"/>`}).join('')}</g>`,
+   ending:`<rect width="540" height="960" fill="#0a1428"/>${win}
+     <circle cx="120" cy="120" r="6" fill="#fff"/><circle cx="120" cy="120" r="14" fill="none" stroke="#fff" stroke-width="1" opacity=".5"/>
+     <rect x="0" y="700" width="540" height="260" fill="#0a1322"/>`
+  };
+  return `<svg width="100%" height="100%" viewBox="0 0 540 960" preserveAspectRatio="xMidYMid slice"
+    style="position:absolute;inset:0"><defs><linearGradient id="h" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".3"/></linearGradient></defs>
+    ${A[loc]||A.bridge}</svg>`;
+}
+
+/* ============================ ART (real images + SVG fallback) =========== */
+function replaceWithSVG(el, char, expr){
+  const tmp=document.createElement('div');
+  if(char==='nut') tmp.innerHTML=faceNutSVG(expr);
+  else if(char==='ari') tmp.innerHTML=faceAriSVG(expr);
+  else tmp.innerHTML=faceCapSVG();
+  if(el.parentNode) el.parentNode.replaceChild(tmp.firstChild, el);
+}
+function faceNut(expr){ return `<img class="sprite" src="assets/nut_${expr}.png" onerror="replaceWithSVG(this,'nut','${expr}')" alt="">`; }
+function faceAri(mood){ return `<img class="sprite" src="assets/ari_${mood}.png" onerror="replaceWithSVG(this,'ari','${mood}')" alt="">`; }
+function faceCap(){ return `<img class="sprite" src="assets/cap_neutral.png" onerror="replaceWithSVG(this,'cap','')" alt="">`; }
+function bgArt(loc){
+  // State-aware: เลือก variant ถ้ามี ไม่งั้น fallback ไป base → SVG
+  const variantMap={
+    bridge: S.hull<50?'alert':(S.trust>2?'calm':null),
+    moduleB: S.nut==='trapped'?'breached':(S.hull>70?'sealed':null),
+    lab: null,
+    comms: S.commsRestored?'active':null,
+  };
+  const variant=variantMap[loc]||null;
+  const varSrc=variant?`assets/bg_${loc}_${variant}.png`:null;
+  const baseSrc=`assets/bg_${loc}.png`;
+  const src=varSrc||baseSrc;
+  const onerr=varSrc
+    ?`if(this.src.includes('_${variant}')){this.src='${baseSrc}';}else{this.parentNode.innerHTML=bgArtSVG('${loc}');}`
+    :`this.parentNode.innerHTML=bgArtSVG('${loc}')`;
+  return `<img src="${src}" onerror="${onerr}" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover">`;
+}
+function preloadAssets(){
+  const urls=['key_title','nut_neutral','nut_panic','nut_relieved','nut_sad','nut_brave',
+    'ari_calm','ari_smug','ari_alert','cap_neutral',
+    'bg_bridge','bg_moduleB','bg_corridor','bg_nav','bg_lab','bg_medbay','bg_comms','bg_storage','bg_reactor','bg_dock','bg_ending'];
+  urls.forEach(n=>{ const i=new Image(); i.src=`assets/${n}.png`; });
+}
+
+/* ============================ AUDIO ====================================== */
+let actx,master,muted=false;
+function initAudio(){ if(actx)return; actx=new(window.AudioContext||window.webkitAudioContext)();
+  master=actx.createGain();master.gain.value=.45;master.connect(actx.destination);
+  const g=actx.createGain();g.gain.value=.045;g.connect(master);
+  const o=actx.createOscillator(),o2=actx.createOscillator();o.type=o2.type='sine';o.frequency.value=56;o2.frequency.value=56.4;
+  o.connect(g);o2.connect(g);o.start();o2.start(); }
+function tone(f,d,t='sine',v=.18,delay=0){ if(!actx||muted)return;const s=actx.currentTime+delay,o=actx.createOscillator(),g=actx.createGain();
+  o.type=t;o.frequency.value=f;g.gain.setValueAtTime(.0001,s);g.gain.linearRampToValueAtTime(v,s+.01);g.gain.exponentialRampToValueAtTime(.0001,s+d);
+  o.connect(g);g.connect(master);o.start(s);o.stop(s+d+.03);}
+const blip=()=>tone(760,.05,'square',.05);
+const pick=()=>tone(880,.08,'triangle',.13);
+const ding=()=>[523,659,784].forEach((f,i)=>tone(f,.25,'sine',.14,i*.08));
+$("mute").onclick=()=>{muted=!muted;if(master)master.gain.value=muted?0:.45;$("mute").textContent=muted?'♪̶':'♪';};
+
+/* ============================ DIALOGUE RUNTIME =========================== */
+let beats=[],bi=0,typing=false,typeTimer=null,afterBeats=null,curBG=null;
+const CH={nut:{name:'นัท',cls:'nut',face:faceNut},ari:{name:'ARI',cls:'ari',face:faceAri},
+  cap:{name:'กัปตันอร',cls:'cap',face:faceCap},narr:{name:'',cls:'narr',face:null},you:{name:'',cls:'narr',face:null}};
+
+function setBG(loc,alert){ if(loc&&loc!==curBG){curBG=loc;$("bgArt").innerHTML=bgArt(loc);} 
+  $("bg").classList.toggle('alert',!!alert); }
+function setChar(who,expr){
+  const c=CH[who]; const box=$("char");
+  if(!c||!c.face){ box.style.opacity=0; box.innerHTML=''; return; }
+  box.style.opacity=1; box.innerHTML=c.face(expr);
+}
+function renderBeat(b){
+  if(b.bg!==undefined||b.alert!==undefined) setBG(b.bg,b.alert);
+  triggerFX(b);
+  const c=CH[b.who]||CH.narr;
+  $("namebox").className=c.cls; $("namebox").textContent=c.name;
+  setChar(b.who, b.expr);
+  $("dlg").classList.toggle('narr-style', b.who==='narr'||b.who==='you');
+  typewrite(b.text);
+}
+function typewrite(txt){
+  typing=true; const el=$("dlg"); el.innerHTML=''; let i=0;
+  clearInterval(typeTimer);
+  typeTimer=setInterval(()=>{ el.textContent=txt.slice(0,++i); if(i%2===0)blip();
+    if(i>=txt.length){clearInterval(typeTimer);typing=false; el.innerHTML=txt+'<span id="adv">▼</span>';}},20);
+}
+$("dlg").onclick=()=>{ if(typing){clearInterval(typeTimer);typing=false;
+    const t=beats[bi].text; $("dlg").innerHTML=t+'<span id="adv">▼</span>'; return;}
+  bi++; if(bi<beats.length) renderBeat(beats[bi]); else { const cb=afterBeats; afterBeats=null; cb&&cb(); } };
+function play(arr,done){ exitCalmMode(); beats=arr;bi=0;afterBeats=done; $("choices").classList.remove('show'); $("dlgWrap").style.display='block'; renderBeat(beats[0]); }
+
+/* ============================ CHOICES ==================================== */
+function ask(prompt,list,onPick){
+  enterCalmMode(); // จอสงบก่อนเลือก — ห้ามกระพริบ/สั่นขณะชั่งใจ
+  hideEventImage(); // ซ่อนภาพเหตุการณ์ตอนโชว์ตัวเลือก
+  $("dlgWrap").style.display='none';
+  const box=$("choices"); box.innerHTML=`<div class="ask">${prompt}</div>`;
+  list.slice().sort(()=>Math.random()-.5).forEach(ch=>{   // สลับลำดับ กัน position bias
+    const b=document.createElement('button'); b.className='ch'; b.textContent=ch.text;
+    b.onclick=()=>{ pick(); tally[ch.dom]++; behaviorLog.push({c:ch.dom,ms:Math.round(performance.now()-choiceT0)});
+      ch.eff&&ch.eff(); updateHUD(); box.classList.remove('show'); $("dlgWrap").style.display='block';
+      play(ch.out(), onPick); };
+    box.appendChild(b);
+  });
+  box.classList.add('show'); choiceT0=performance.now();
+}
+
+/* ============================ HUD ======================================== */
+function updateHUD(){
+  $("g_hull").style.width=Math.max(8,Math.min(100,S.hull))+'%';
+  $("g_power").style.width=Math.max(8,Math.min(100,S.power))+'%';
+  const t={unknown:'นัท: ?',safe:'นัท: ปลอดภัย',trapped:'นัท: ติดอยู่!',injured:'นัท: บาดเจ็บ'}[S.nut];
+  $("nutStat").textContent=t; $("nutStat").style.color=S.nut==='trapped'?'#ff5d70':S.nut==='injured'?'#ffb547':'#5bd6b0';
+  updateAtmosphere();
+}
+
+/* ============================ EFFECTS ENGINE ============================= */
+let reducedMotion = matchMedia('(prefers-reduced-motion:reduce)').matches;
+const _noFX = () => reducedMotion || matchMedia('(prefers-reduced-motion:reduce)').matches;
+let _shakeCd=0, _flickerCd=0, _glitchCd=0;
+
+function fireShake(){
+  if(_noFX()||Date.now()<_shakeCd) return;
+  _shakeCd=Date.now()+600;
+  const v=$("vn"); v.classList.remove('shake'); void v.offsetWidth; v.classList.add('shake');
+  setTimeout(()=>v.classList.remove('shake'),550);
+}
+function fireFlicker(){
+  if(_noFX()||Date.now()<_flickerCd) return;
+  _flickerCd=Date.now()+1400;
+  const o=$("fxOverlay"); o.classList.remove('flicker'); void o.offsetWidth; o.classList.add('flicker');
+  setTimeout(()=>o.classList.remove('flicker'),1300);
+}
+function fireGlitch(){
+  if(_noFX()||Date.now()<_glitchCd) return;
+  _glitchCd=Date.now()+600;
+  const g=$("bgArt"); g.classList.remove('glitch'); void g.offsetWidth; g.classList.add('glitch');
+  setTimeout(()=>g.classList.remove('glitch'),500);
+}
+function triggerFX(b){
+  if(!b.bg) return; // เฉพาะ beat ที่เปลี่ยนฉาก (scene-transition) เท่านั้น
+  const loc=b.bg;
+  // Shake: ฉากที่มี impact/collision/power-surge + alert
+  if(b.alert && ['bridge','moduleB','reactor'].includes(loc)) setTimeout(fireShake,50);
+  // Flicker: ฉากไฟลาม/ฉุกเฉิน + alert
+  if(b.alert && ['bridge','corridor','reactor'].includes(loc)) setTimeout(fireFlicker,130);
+  // Glitch: ฉากที่ระบบรวน/สัญญาณขัดข้อง
+  if(['nav','comms'].includes(loc)) setTimeout(fireGlitch,80);
+  // Manual override ผ่าน field fx ใน beat
+  if(b.fx==='shake')   setTimeout(fireShake,50);
+  if(b.fx==='flicker') setTimeout(fireFlicker,130);
+  if(b.fx==='glitch')  setTimeout(fireGlitch,80);
+}
+function enterCalmMode(){
+  // ลดเอฟเฟกต์ทั้งหมดก่อนโชว์ตัวเลือก — ไม่ให้รบกวนการตัดสินใจ
+  $("vn").classList.remove('shake');
+  $("fxOverlay").classList.remove('flicker');
+  $("bgArt").classList.remove('glitch');
+  $("bg").classList.add('calm-mode');   // หยุดไฟแดงกระพริบ
+}
+function exitCalmMode(){
+  $("bg").classList.remove('calm-mode');
+}
+function updateAtmosphere(){
+  // สะท้อนสถานะยานบนจอต่อเนื่อง (ไม่กระพริบถี่)
+  $("crackOverlay").classList.toggle('active', S.hull < 40);
+  $("dimOverlay").classList.toggle('active', S.power < 35);
+}
+
+// ── Event images — ภาพเหตุการณ์กำลังเกิด (ตอนเล่าเรื่อง ก่อนเลือก) ────────
+const EVENT_IMGS=['impact','breach','fire','nav','lab','medbay','comms','conflict','storage','reactor','dock','ending'];
+function showEventImage(crisisIdx){
+  const id=EVENT_IMGS[crisisIdx]; if(!id) return;
+  const art=$("eventArt");
+  art.innerHTML=`<img src="assets/event_${id}.png" onerror="this.parentNode.innerHTML=''" alt="">`;
+  requestAnimationFrame(()=>art.classList.add('show')); // trigger transition
+}
+function hideEventImage(){
+  const art=$("eventArt");
+  art.classList.remove('show');
+  setTimeout(()=>{ if(!art.classList.contains('show')) art.innerHTML=''; },1300);
+}
+
+// init motion-reduced class ตามค่าเริ่มต้น OS
+if(reducedMotion) $("vn").classList.add('motion-reduced');
+$("fxToggle").onclick=()=>{
+  reducedMotion=!reducedMotion;
+  $("fxToggle").classList.toggle('off',reducedMotion);
+  $("fxToggle").title=reducedMotion?'เปิดเอฟเฟกต์':'ลดเอฟเฟกต์';
+  $("vn").classList.toggle('motion-reduced',reducedMotion); // ปิด/เปิด Ken Burns + float
+  if(reducedMotion){
+    $("vn").classList.remove('shake');
+    $("fxOverlay").classList.remove('flicker');
+    $("bgArt").classList.remove('glitch');
+    $("dimOverlay").classList.remove('active');
+    $("crackOverlay").classList.remove('active');
+  } else {
+    updateAtmosphere();
+  }
+};
+
+/* ============================ CONTENT (12 จุด) =========================== */
+const b=(who,expr,text,bg,alert,fx)=>({who,expr,text,bg,alert,fx});
+
+function assertDomains(){
+  const req=new Set(['R','I','A','S','E','C']);
+  CRISES.forEach((c,i)=>{
+    const doms=new Set(c.choices().map(ch=>ch.dom));
+    const miss=[...req].filter(d=>!doms.has(d));
+    if(miss.length) console.error(`❌ CRISES[${i}] ขาดโดเมน: ${miss.join(',')}`);
+  });
+}
+
+const CRISES=[
+ // ---- จุด 1: แรงกระแทก ----
+ { intro:(ST)=>[
+    b('ari','calm','ระบบปลุกคุณตอนตีสามครึ่ง ปกติฉันไม่ทำแบบนี้','bridge',true),
+    b('ari','calm','สะเก็ดดาวชนยานเราหนึ่งรู ไฟหลักตัดทั้งหมด'),
+    b('nut','panic','พี่! มืดหมดเลย ไฟแดงน่ากลัวมาก เราจะเป็นไงคะ!'),
+    b('you',null,'ไฟฉุกเฉินสีแดงกะพริบทั่วยาน ทุกอย่างเกิดพร้อมกัน — เธอจะลงมือกับอะไรก่อน?'),
+   ],
+   choices:()=>[
+    {text:'คว้าไฟฉาย ไปดูแผงไฟด้วยตัวเอง',dom:'R',eff:()=>S.power+=12,out:()=>[b('ari','calm','ลงมือเองทันทีไม่รอใคร ไฟค่อย ๆ นิ่งขึ้นแล้ว')]},
+    {text:'เปิด log ระบบ ไล่หาว่าอะไรโดน',dom:'I',eff:()=>S.knownCause=true,out:()=>[b('ari','calm','log บอกชัด สะเก็ดดาวโดนโมดูล B จำตรงนี้ไว้')]},
+    {text:'เปิดสายทั่วยาน พูดให้ทุกคนสงบก่อน',dom:'A',eff:()=>{S.trust++;S.morale+=5;},out:()=>[b('nut','relieved','เสียงพี่ทำให้หนูใจชื้นขึ้นเยอะเลย')]},
+    {text:'วิ่งไปดูนัทที่ล้มตอนไฟดับก่อน',dom:'S',eff:()=>S.nut='safe',out:()=>[b('nut','relieved','พี่ห่วงหนูก่อนเลย หนูไม่เป็นไรนะ')]},
+    {text:'เรียกทีมทั้งหมด แบ่งงานแก้ปัญหา',dom:'E',eff:()=>S.trust++,out:()=>[b('ari','calm','ทีมขยับพร้อมกันแล้ว ดูเป็นระเบียบดีมาก')]},
+    {text:'ล็อกระบบสำคัญทีละตัว กันความเสียหายลาม',dom:'C',eff:()=>{},out:()=>[b('ari','calm','รอบคอบดี ตัดวงจรป้องกันไว้ก่อนเลย')]},
+   ]},
+ // ---- จุด 2: รูรั่ว ----
+ { intro:(ST)=>{const arr=[
+    b('ari','alert','แจ้งเตือน: อากาศกำลังรั่วออกจากโมดูล B ช้า ๆ','moduleB',true),
+    b('ari','calm','มีเวลาประมาณสี่นาทีก่อนอากาศในโซนนั้นหาย')];
+    if(ST.nut!=='safe') arr.push(b('nut','panic','พี่!! ยังมีคนอยู่ในโมดูล B อยู่นะ ช่วยด้วย!'));
+    else arr.push(b('nut','sad','หนูโอเคแล้ว แต่รูรั่วนั้น... แก้ยังไงดีพี่?'));
+    if(ST.knownCause) arr.push(b('ari','calm','ดีที่อ่าน log ไว้ เรารู้ตำแหน่งรอยรั่วแน่ชัดเลย'));
+    arr.push(b('you',null,'อากาศหายไปทุกวินาที — เธอจะทำอะไร?')); return arr;},
+   choices:()=>[
+    {text:'เข้าไปอุดรอยรั่วด้วยมือตัวเอง',dom:'R',eff:()=>{S.hull+=8;S.playerHurt=true;},out:()=>[b('nut','sad','พี่มือเป็นอะไรไปเลย แต่รูปิดแล้วนะ')]},
+    {text:'คำนวณเวลาและออกซิเจนที่เหลือก่อนลงมือ',dom:'I',eff:()=>S.knownCause=true,out:()=>[b('ari','calm','มีเวลาพอ ข้อมูลครบ ลงมือได้ถูกจุดเลย')]},
+    {text:'ปิดผนึกโมดูล จัดสรรอากาศใหม่',dom:'C',eff:()=>{if(S.nut!=='safe')S.nut='trapped';S.hull+=6;},
+      out:()=>S.nut==='trapped'?[b('ari','alert','ประตูปิดแล้ว ยานนิ่ง แต่มีเสียงเคาะจากข้างใน'),b('nut','sad','นั่น... นั่นเสียงเคาะนะพี่')]:[b('ari','calm','ปิดผนึกเรียบร้อย ยานนิ่งดีแล้ว')]},
+    {text:'สั่งอพยพทุกคนออกจากโมดูล B ก่อน',dom:'E',eff:()=>{S.trust++;S.nut='safe';},out:()=>[b('nut','relieved','ทุกคนออกมาทันเพราะพี่สั่งชัดมากเลย!')]},
+    {text:'พาคนที่ติดอยู่ออกมาให้ได้ก่อน',dom:'S',eff:()=>{S.nut='safe';S.hull-=3;},out:()=>[b('nut','relieved','พี่มาดึงหนูออกก่อนเลย หนูไม่ลืมนะ')]},
+    {text:'คิดวิธีอุดที่ไม่มีในคู่มือ',dom:'A',eff:()=>S.hull+=7,out:()=>[b('ari','calm','ไม่มีในคู่มือ แต่มันเวิร์กจริง ๆ')]},
+   ]},
+ // ---- จุด 3: ไฟลาม ----
+ { intro:(ST)=>{const arr=[
+    b('ari','alert','ไฟฟ้าลัดวงจรจากจุดเสียหาย เริ่มลามตามท่อแล้ว มีควันด้วย','corridor',true)];
+    if(ST.playerHurt) arr.push(b('nut','sad','พี่ยังเจ็บอยู่นะ ระวังด้วยนะคะ'));
+    if(ST.nut==='trapped') arr.push(b('ari','alert','ควันกำลังเข้าใกล้โมดูลที่มีคนติดอยู่ด้วย'));
+    arr.push(b('nut','panic','เปลวไฟมากขึ้นเรื่อย ๆ พี่ทำยังไงดี?'));
+    arr.push(b('you',null,'ไฟกำลังกินพื้นที่ — เธอจะ?')); return arr;},
+   choices:()=>[
+    {text:'คว้าถังดับเพลิง เข้าไปจัดการไฟเอง',dom:'R',eff:()=>S.hull+=5,out:()=>[b('ari','calm','ลุยเอง ไฟสงบลงด้วยมือเธอ')]},
+    {text:'ตัดวงจรที่ใช่จาก log ระบบ',dom:'I',eff:()=>{},out:()=>[b('ari','calm',S.knownCause?'รู้ต้นตอแล้ว ตัดได้เป๊ะไม่เสียพลังงานเลย':'ค่อย ๆ ไล่ตัดจนเจอ ดับได้')]},
+    {text:'ดัดแปลงระบบระบายอากาศให้ดับไฟ',dom:'A',eff:()=>S.hull+=4,out:()=>[b('ari','calm','ตัดออกซิเจนเฉพาะจุดให้ไฟดับเอง ไอเดียดีมาก')]},
+    {text:'ดึงทุกคนออกจากโซนไฟให้พ้นก่อน',dom:'S',eff:()=>{S.morale+=6;S.hull-=2;},out:()=>[b('nut','relieved','พี่ห่วงคนก่อนเสมอ ทุกคนออกมาหมดแล้ว')]},
+    {text:'สั่งทีมกระจายดับไฟหลายจุดพร้อมกัน',dom:'E',eff:()=>S.trust++,out:()=>[b('nut','brave','ทุกคนแยกย้ายตามคำสั่ง ไฟถูกล้อมไว้แล้ว')]},
+    {text:'ตัดไฟทั้งโซนอย่างเป็นขั้นตอน',dom:'C',eff:()=>S.power-=15,out:()=>[b('ari','calm','ปลอดภัยแน่นอน แต่ใช้พลังงานไปพอสมควรนะ')]},
+   ]},
+ // ---- จุด 4: ระบบนำทางเพี้ยน ----
+ { intro:(ST)=>{const arr=[
+    b('ari','alert','ระบบนำทางอ่านค่าผิดพลาด ยานอาจเลื่อนออกนอกวงโคจร','nav',true)];
+    if(ST.knownCause) arr.push(b('ari','calm','จากที่วิเคราะห์ไว้ สะเก็ดดาวน่าจะกระทบเซนเซอร์ด้วย'));
+    else arr.push(b('nut','sad','ตัวเลขบนจอเปลี่ยนตลอดเลยพี่ ไม่รู้อันไหนจริง'));
+    arr.push(b('nut','panic','ถ้าวงโคจรเพี้ยน เราจะลอยออกไปไกลไหมพี่?'));
+    arr.push(b('you',null,'เวลาไม่มาก ต้องตัดสินใจตอนนี้ — เธอจะแก้ยังไง?')); return arr;},
+   choices:()=>[
+    {text:'ปรับเซนเซอร์นำทางด้วยมือโดยตรง',dom:'R',eff:()=>S.hull+=3,out:()=>[b('ari','calm','ปรับด้วยมือสำเร็จ ค่าเริ่มนิ่งขึ้นแล้ว')]},
+    {text:'วินิจฉัยระบบทีละส่วน หาต้นเหตุ',dom:'I',eff:()=>S.knownCause=true,out:()=>[b('ari','calm','เจอแล้ว เซนเซอร์สำรองยังดี เปลี่ยนไปใช้ได้เลย')]},
+    {text:'คิดวิธีนำทางสำรองจากสิ่งที่มีในยาน',dom:'A',eff:()=>S.power-=5,out:()=>[b('ari','calm','ใช้กล้องดาราศาสตร์ประเมินตำแหน่ง ไม่มีในคู่มือแต่ใช้ได้')]},
+    {text:'อธิบายให้ทุกคนรู้ว่าเกิดอะไรขึ้น',dom:'S',eff:()=>S.morale+=5,out:()=>[b('nut','relieved','พอรู้ว่าเกิดอะไร ทุกคนหายกังวลลงได้เยอะเลย')]},
+    {text:'กำหนดให้ชัดว่าใครทำอะไรในการแก้ระบบ',dom:'E',eff:()=>S.trust++,out:()=>[b('ari','calm','แบ่งงานชัด ทีมลงมือได้เร็วไม่ซ้ำกัน')]},
+    {text:'เดินตามโปรโตคอลสำรองทีละขั้น',dom:'C',eff:()=>{},out:()=>[b('ari','calm','ทำตามขั้นตอนสำรองเป๊ะ ระบบค่อย ๆ กลับมา')]},
+   ]},
+ // ---- จุด 5: ตัวอย่างวิจัยหลุด ----
+ { intro:(ST)=>{const arr=[
+    b('ari','alert','กรงทดลองในแล็บเปิดอยู่ ตัวอย่างชีวภาพหายไปจากที่','lab',true)];
+    if(ST.trust>0) arr.push(b('nut','brave','ทีมพร้อมช่วยแล้วพี่ ต้องการอะไรสั่งเลย'));
+    else arr.push(b('nut','panic','ทุกคนวิ่งหนีกันหมดเลยพี่ ไม่มีใครช่วย'));
+    arr.push(b('ari','calm','ตัวอย่างไม่อันตรายโดยตรง แต่ถ้าเข้าระบบอากาศอาจมีปัญหา'));
+    arr.push(b('you',null,'ต้องหาและควบคุมมันก่อนที่จะเข้าระบบอากาศ — เธอจะ?')); return arr;},
+   choices:()=>[
+    {text:'เข้าไปจับตัวอย่างด้วยตัวเองโดยตรง',dom:'R',eff:()=>{},out:()=>[b('nut','relieved','จับได้แล้ว! พี่กล้ามากเลย')]},
+    {text:'ศึกษาพฤติกรรมก่อน หาจุดอ่อน',dom:'I',eff:()=>S.knownCause=true,out:()=>[b('ari','calm','วิเคราะห์ถูก มันตอบสนองต่อแสง ล่อเข้ากรงได้เลย')]},
+    {text:'ล่อด้วยแสงหรือเสียง ให้เดินเข้ากรงเอง',dom:'A',eff:()=>{},out:()=>[b('ari','calm','ไอเดียดี เดินเข้ากรงเองเลยโดยไม่ต้องไล่')]},
+    {text:'พูดให้ทีมที่ตื่นตกใจสงบก่อน',dom:'S',eff:()=>S.morale+=5,out:()=>[b('nut','relieved','พอทุกคนใจเย็น ทีมงานร่วมมือได้ดีขึ้นมากเลย')]},
+    {text:'มอบหมายคนที่เหมาะสมไปจัดการแล็บ',dom:'E',eff:()=>S.trust++,out:()=>[b('ari','calm','คนที่ถนัดกว่าลงมือ ได้ผลเร็วกว่าทำคนเดียว')]},
+    {text:'ปิดผนึกแล็บตามโปรโตคอลชีวนิรภัย',dom:'C',eff:()=>{},out:()=>[b('ari','calm','ทำตามโปรโตคอลเป๊ะ แล็บปลอดภัยภายในสี่นาที')]},
+   ]},
+ // ---- จุด 6: ลูกเรือเจ็บ ----
+ { intro:(ST)=>{const hurtNut=(ST.nut==='trapped'||ST.nut==='injured'); if(hurtNut)S.nut='injured';
+    const arr=[b(hurtNut?'nut':'ari',hurtNut?'sad':'alert',
+      hurtNut?'พี่... หนูเจ็บที่ซี่โครง หายใจไม่ค่อยออกเลย'
+             :'มีลูกเรือบาดเจ็บจากเหตุที่ผ่านมา บรรยากาศในยานเริ่มหนักขึ้น','medbay',true)];
+    if(ST.trust<=0) arr.push(b('ari','calm','บรรยากาศตึงเครียดมาก ทุกคนดูเหนื่อยและกังวล'));
+    else arr.push(b('ari','calm','ดีที่ทุกคนยังไว้ใจเธอ พวกเขารอเธออยู่'));
+    arr.push(b('you',null,(hurtNut?'นัทกำลังเจ็บอยู่ตรงหน้า — ':'')+'เธอจะทำอะไรตอนนี้?')); return arr;},
+   choices:()=>[
+    {text:'ปฐมพยาบาลและดูแลคนเจ็บก่อนเลย',dom:'S',eff:()=>S.morale+=8,out:()=>[b('nut','relieved','มือพี่อุ่นมาก หนูรู้สึกดีขึ้นแล้ว')]},
+    {text:'ตรวจและวินิจฉัยอาการให้ชัดก่อน',dom:'I',eff:()=>{},out:()=>[b('ari','calm','วินิจฉัยถูก รักษาตรงจุดเลย')]},
+    {text:'จัดเตรียมอุปกรณ์และเวชภัณฑ์ให้พร้อม',dom:'C',eff:()=>{},out:()=>[b('ari','calm','ทุกอย่างเรียงพร้อม หยิบใช้ได้ทันที')]},
+    {text:'พาไปห้องพยาบาลด้วยตัวเอง',dom:'R',eff:()=>{},out:()=>[b('nut','relieved',ST.playerHurt?'พี่เจ็บอยู่แท้ ๆ ยังมาช่วย...':'พี่พาหนูถึงห้องพยาบาลได้เร็วมาก')]},
+    {text:'สงบบรรยากาศในยาน หยุดความตื่นตระหนก',dom:'E',eff:()=>S.trust++,out:()=>[b('ari','calm','เสียงเธอตัดความโกลาหล ทุกคนกลับมานิ่ง')]},
+    {text:'พูดให้คนเจ็บมีกำลังใจสู้ต่อ',dom:'A',eff:()=>S.morale+=6,out:()=>[b('nut','relieved','พี่พูดอะไรไม่รู้ แต่หนูอยากสู้ต่อแล้ว')]},
+   ]},
+ // ---- จุด 7: สัญญาณขัดข้อง ----
+ { intro:(ST)=>{const arr=[
+    b('ari','alert','การสื่อสารกับภาคพื้นโลกขัดข้อง ส่งสัญญาณออกไม่ได้','comms',false)];
+    if(ST.power<50) arr.push(b('ari','calm','พลังงานต่ำทำให้เครื่องส่งสัญญาณทำงานไม่เต็มกำลัง'));
+    else arr.push(b('nut','sad','ภาคพื้นน่าจะกังวลมากเลย ไม่ได้ข่าวเรามาสักพักแล้ว'));
+    arr.push(b('nut','sad','โลกรู้ไหมนะพี่ว่าเราเจอปัญหาอะไรบ้าง?'));
+    arr.push(b('you',null,'การติดต่อขาดหาย — เธอจะแก้ปัญหานี้อย่างไร?')); return arr;},
+   choices:()=>[
+    {text:'ซ่อมเสาอากาศโดยตรงด้วยตัวเอง',dom:'R',eff:()=>S.commsRestored=true,out:()=>[b('ari','calm','ซ่อมสำเร็จ สัญญาณกลับมาแล้ว')]},
+    {text:'ไล่สแกนหาความถี่ที่ยังส่งสัญญาณได้',dom:'I',eff:()=>S.commsRestored=true,out:()=>[b('ari','calm','เจอความถี่สำรอง ยังส่งได้อยู่เลย')]},
+    {text:'ดัดแปลงระบบอื่นให้ช่วยส่งสัญญาณ',dom:'A',eff:()=>{S.commsRestored=true;S.power-=5;},out:()=>[b('ari','calm','ใช้เซนเซอร์อุตุนิยมวิทยาแทน ได้ผลเลย')]},
+    {text:'บอกทีมว่าติดต่อไม่ได้ แต่เราโอเค',dom:'S',eff:()=>S.morale+=5,out:()=>[b('nut','brave','รู้แล้วว่าเกิดอะไร ใจชื้นขึ้นมากเลยพี่')]},
+    {text:'ตัดสินใจว่าข้อความด่วนชิ้นแรกจะบอกอะไร',dom:'E',eff:()=>S.trust++,out:()=>[b('ari','calm','ข้อความกระชับ ตรงประเด็น ภาคพื้นตอบกลับทันที')]},
+    {text:'ตรวจระบบทีละส่วนตามลำดับความสำคัญ',dom:'C',eff:()=>S.commsRestored=true,out:()=>[b('ari','calm','ตรวจอย่างเป็นระบบ หาปัญหาได้ทุกจุด')]},
+   ]},
+ // ---- จุด 8: แผนขัดแย้ง ----
+ { intro:(ST)=>{const arr=[
+    b('ari','calm','มีปัญหาใหม่: ทีมไม่เห็นด้วยกันว่าจะแก้ปัญหายานต่ออย่างไร','bridge',false)];
+    if(ST.trust>1) arr.push(b('nut','brave','แต่ทุกคนยังเชื่อใจพี่อยู่ บางทีพี่ต้องตัดสินใจเอง'));
+    else arr.push(b('nut','sad','ทุกคนโกรธกันอยู่ บรรยากาศหนักมากเลยพี่'));
+    if(ST.morale<50) arr.push(b('ari','calm','ทุกคนเหนื่อยและกังวล ถ้าไม่จัดการตอนนี้อาจวุ่นกว่าเดิม'));
+    arr.push(b('you',null,'ทีมกำลังแตก — เธอจะรับมืออย่างไร?')); return arr;},
+   choices:()=>[
+    {text:'ลงมือตามแผนของตัวเองเลย ไม่รอ',dom:'R',eff:()=>S.hull+=3,out:()=>[b('ari','calm','ทำเสร็จเร็ว บางคนยังไม่พอใจ แต่ยานดีขึ้น')]},
+    {text:'วิเคราะห์ข้อดีข้อเสียแต่ละแผนก่อน',dom:'I',eff:()=>{},out:()=>[b('ari','calm','เห็นภาพชัดขึ้น แผนที่ดีที่สุดชัดเจนแล้ว')]},
+    {text:'หาแนวทางกลาง ๆ ที่รวมทุกฝ่าย',dom:'A',eff:()=>{S.trust++;S.morale+=5;S.teamSynced=true;},out:()=>[b('nut','relieved','ทุกคนรู้สึกว่าได้รับการรับฟัง บรรยากาศดีขึ้นมาก')]},
+    {text:'รับฟังความกังวลของทุกคนก่อน',dom:'S',eff:()=>S.morale+=8,out:()=>[b('nut','brave','แค่รู้สึกว่าถูกได้ยิน ทุกคนเปิดใจร่วมมือมากขึ้น')]},
+    {text:'ประกาศตัดสินใจชัด ๆ ให้ทุกคนทำตาม',dom:'E',eff:()=>{S.trust++;S.teamSynced=true;},out:()=>[b('ari','calm','ทีมต้องการผู้นำตอนนี้ การตัดสินใจชัดทำให้ทุกคนขยับ')]},
+    {text:'เขียนเหตุผลและข้อตกลงให้ทุกคนเห็น',dom:'C',eff:()=>S.morale+=4,out:()=>[b('ari','calm','มีหลักฐานชัด ทุกคนเห็นตรงกัน ความขัดแย้งลดลง')]},
+   ]},
+ // ---- จุด 9: เสบียงปนเปื้อน ----
+ { intro:(ST)=>{const arr=[
+    b('ari','alert','ระบบตรวจพบสารปนเปื้อนในถังเสบียงบางส่วน','storage',true)];
+    if(ST.morale<50) arr.push(b('nut','sad','ทุกคนเหนื่อยอยู่แล้ว พอมาเจอเรื่องนี้อีก...'));
+    else arr.push(b('nut','brave','เรารับมือปัญหาได้ตลอด อันนี้ก็ทำได้เหมือนกัน'));
+    arr.push(b('ari','calm','ยานกู้ภัยอีกหลายชั่วโมง ต้องจัดการตอนนี้'));
+    arr.push(b('you',null,'ของกินและน้ำบางส่วนอาจปลอดภัยอยู่ — เธอจะทำอะไร?')); return arr;},
+   choices:()=>[
+    {text:'ทิ้งของที่ปนเปื้อนทั้งหมดทันที',dom:'R',eff:()=>S.morale-=5,out:()=>[b('ari','calm','ทิ้งเร็ว ปลอดภัย แต่เสบียงเหลือน้อย')]},
+    {text:'ทดสอบแต่ละชิ้น แยกอันที่ยังปลอดภัย',dom:'I',eff:()=>{},out:()=>[b('ari','calm','ทดสอบเสร็จ เหลือของปลอดภัยพอใช้ได้')]},
+    {text:'คิดวิธีหาแหล่งน้ำหรืออาหารทดแทน',dom:'A',eff:()=>S.morale+=5,out:()=>[b('nut','brave','ยังมีทางออก! เธอไม่ยอมแพ้เลยนะ')]},
+    {text:'แจกเสบียงที่เหลือโดยให้คนเจ็บก่อน',dom:'S',eff:()=>S.morale+=6,out:()=>[b('nut','relieved','การดูแลคนที่ต้องการก่อน ทำให้ทุกคนรู้สึกมีค่า')]},
+    {text:'ประกาศนโยบายแบ่งเสบียงที่ชัดเจน',dom:'E',eff:()=>S.morale+=5,out:()=>[b('ari','calm','ทุกคนรู้ว่าจะได้ส่วนแบ่งยังไง ความกังวลลดลงมาก')]},
+    {text:'ทำบัญชีเสบียงและคำนวณว่าพอไหม',dom:'C',eff:()=>{},out:()=>[b('ari','calm','คำนวณแล้ว เพียงพอถ้าบริหารดี')]},
+   ]},
+ // ---- จุด 10: พลังงานวิกฤต + dilemma ----
+ { intro:(ST)=>[
+    b('ari','alert',`พลังงานสำรองเหลือ ${Math.max(10,Math.round(ST.power))}% และยังลดอยู่ ต้องจัดการเดี๋ยวนี้`,'reactor',true),
+    b('nut','panic','ถ้าไฟหมดนี่เราจะ...'),
+    b('ari','calm','ยังมีทางออกนะ เลือกให้ดี'),
+    b('you',null,'พลังงานร่อยหรอลงทุกที — จะลงแรงกับส่วนไหน?'),
+   ],
+   choices:()=>[
+    {text:'คำนวณจัดสรรพลังงานที่เหลือทุกหยด',dom:'C',eff:()=>S.power+=4,out:()=>[b('ari','calm','จัดตารางใหม่ ยืดเวลาได้อีกเยอะ')]},
+    {text:'ลงไปต่อวงจรสำรองด้วยมือ',dom:'R',eff:()=>S.power+=10,out:()=>[b('ari','calm','ต่อไฟสำรองสำเร็จ พลังงานเด้งขึ้นมาแล้ว')]},
+    {text:'ไล่หาว่าพลังงานรั่วหายไปไหน',dom:'I',eff:()=>S.power+=6,out:()=>[b('ari','calm','เจอวงจรกินไฟผิดปกติ อุดซะ ได้คืนมาเยอะเลย')]},
+    {text:'สั่งลำดับว่าระบบไหนได้ไฟก่อน',dom:'E',eff:()=>S.trust++,out:()=>[b('ari','calm','จัดลำดับชัด ทีมทำตามได้ทันที')]},
+    {text:'ดัดแปลงอุปกรณ์ให้กินไฟน้อยลง',dom:'A',eff:()=>S.power+=8,out:()=>[b('ari','calm','แฮ็กให้กินไฟครึ่งเดียว ในคู่มือไม่มีแต่เวิร์ก')]},
+    {text:'เตรียมทุกคนให้พร้อมรับมือถ้าไฟหมด',dom:'S',eff:()=>S.morale+=6,out:()=>[b('nut','brave','ทุกคนรู้แผนสำรองแล้ว ใจนิ่งขึ้นมากเลย')]},
+   ]},
+ // ---- จุด 11: เตรียมรับกู้ภัย ----
+ { intro:(ST)=>{const arr=[
+    b('ari','calm','ยานกู้ภัยจะมาถึงใน 30 นาที มีเวลาเตรียมตัว','dock',false)];
+    if(ST.hull<60) arr.push(b('nut','sad','ยานเราเสียหายพอสมควร ต้องซ่อมก่อนส่งมอบไหมพี่?'));
+    else arr.push(b('nut','brave','เราผ่านมาได้เกือบหมดแล้ว! เหลืออีกนิดเดียว!'));
+    if(ST.teamSynced) arr.push(b('ari','calm','ทีมทั้งยานพร้อมรับคำสั่งเธอแล้ว'));
+    arr.push(b('you',null,'เวลาสุดท้ายก่อนยานกู้ภัยถึง — จะใช้มันทำอะไร?')); return arr;},
+   choices:()=>[
+    {text:'ซ่อมแซมส่วนสำคัญก่อนส่งมอบ',dom:'R',eff:()=>S.hull+=6,out:()=>[b('nut','brave','พี่ยังลงมือซ่อมได้แม้ใกล้ถึงเวลาแล้ว')]},
+    {text:'รวบรวมข้อมูลเหตุการณ์ทั้งหมดให้ครบ',dom:'I',eff:()=>{},out:()=>[b('ari','calm','รายงานละเอียด ทีมกู้ภัยจะรู้เลยว่าต้องเตรียมอะไร')]},
+    {text:'จดบันทึกเรื่องราวคืนนี้ไว้ให้คนอื่นอ่าน',dom:'A',eff:()=>S.morale+=5,out:()=>[b('nut','relieved','การเขียนบันทึกทำให้ทุกอย่างที่ผ่านมามีความหมาย')]},
+    {text:'ถามทุกคนว่าโอเคไหม ก่อนยานมาถึง',dom:'S',eff:()=>S.morale+=6,out:()=>[b('nut','relieved','แค่ถามว่าเป็นไง... มันหมายความมากสำหรับหนูนะ')]},
+    {text:'สรุปแผนรับยานกู้ภัยให้ทีมทั้งหมด',dom:'E',eff:()=>S.trust++,out:()=>[b('ari','calm','ทุกคนรู้บทบาทตัวเองชัดเจน พร้อมรับการส่งมอบ')]},
+    {text:'จัดทำ checklist ส่งมอบทีละข้อ',dom:'C',eff:()=>{},out:()=>[b('ari','calm','checklist เสร็จสมบูรณ์ ไม่มีอะไรตกหล่น')]},
+   ]},
+ // ---- จุด 12: กู้ภัย ----
+ { intro:(ST)=>[
+    b('cap',null,'นี่กัปตันอร ฉันกู้สายสื่อสารได้แล้ว ยานกู้ภัยเทียบท่าแล้ว','ending',false),
+    b('nut','relieved','กัปตัน! เรารอดแล้ว จริงเหรอ!'),
+    b('ari','calm','รอดแล้ว เหลือเก็บกวาดนิดหน่อย'),
+    b('you',null,'วิกฤตคลี่คลาย คืนนี้มันยาวมาก — เธอจะทำอะไรเป็นอย่างสุดท้าย?'),
+   ],
+   choices:()=>[
+    {text:'เขียนรายงานถ่ายทอดเรื่องราวคืนนี้',dom:'A',eff:()=>{},out:()=>[b('ari','calm','ถ้อยคำของเธอจะถูกอ่านโดยคนทั่วโลก')]},
+    {text:'รวบรวมข้อมูลความเสียหายอย่างเป็นระบบ',dom:'C',eff:()=>{},out:()=>[b('ari','calm','ทีมกู้ภัยรู้เป๊ะว่าต้องเตรียมอะไรมา')]},
+    {text:'วิเคราะห์ว่าทำไมระบบถึงล้มตั้งแต่ต้น',dom:'I',eff:()=>{},out:()=>[b('ari','calm',S.knownCause?'รู้ต้นตอมาตั้งแต่แรก สรุปบทเรียนได้ครบ':'ไล่ดูจนเข้าใจ จะได้ไม่เกิดซ้ำ')]},
+    {text:'ถามทุกคนว่าโอเคไหมหลังผ่านคืนนี้',dom:'S',eff:()=>S.morale+=6,out:()=>[b('nut','relieved','พี่ถามหนูก่อนเลย หนูโอเคแล้วนะ ขอบคุณนะพี่')]},
+    {text:'วางแผนกู้สถานีและขั้นตอนต่อไป',dom:'E',eff:()=>S.trust++,out:()=>[b('ari','calm','มีแผนชัดรอทีมกู้ภัยอยู่แล้ว')]},
+    {text:'ลงมือซ่อมต่อก่อนทีมกู้ภัยจะมาถึง',dom:'R',eff:()=>S.hull+=6,out:()=>[b('nut','brave','พี่ไม่หยุดเลย ซ่อมก่อนทีมกู้ภัยมาถึงด้วยซ้ำ')]},
+   ]},
+];
+
+/* ============================ FLOW ======================================= */
+assertDomains(); // ตรวจครบ 6 โดเมนทุกจุดตอนโหลด
+preloadAssets(); // โหลดภาพหลักล่วงหน้ากัน flicker
+$("startBtn").onclick=()=>{ initAudio(); if(actx&&actx.state==='suspended')actx.resume();
+  $("start").classList.remove('show'); updateHUD(); runCrisis(0); };
+
+function runCrisis(i){
+  if(i>=CRISES.length){ ending(); return; }
+  showEventImage(i); // แสดงภาพเหตุการณ์ก่อนเล่าเรื่อง
+  const prompt = i===9 ? 'พลังงานใกล้หมด เธอจะลงแรงกับส่วนไหน?' : 'เธอจะทำอะไร?';
+  play(CRISES[i].intro(S), ()=> ask(prompt, CRISES[i].choices(), ()=> afterChoice(i)));
+}
+function afterChoice(i){
+  if(i===9){ runDilemma(()=>runCrisis(10)); return; }
+  if(i===5){ showCheckpoint('— ครึ่งทางแรก —',
+    `ผ่านมา 6 จุดแล้ว แนวที่โน้มไปตอนนี้: <b style="color:${TYPE[analyze().code[0]].c}">${TYPE[analyze().code[0]].th}</b> — ยังมีอีก 6 จุด เล่นต่อเพื่อเห็นภาพเต็ม`,
+    ()=>runCrisis(6)); return; }
+  if(i===7){ showCheckpoint('— จุดเปลี่ยน —',
+    `เกือบถึงแล้ว แนวหลักตอนนี้: <b style="color:${TYPE[analyze().code[0]].c}">${TYPE[analyze().code[0]].th}</b> — เหลืออีก 4 จุดสุดท้าย`,
+    ()=>runCrisis(8)); return; }
+  runCrisis(i+1);
+}
+function showCheckpoint(head, html, next){
+  $("cpHead").textContent=head;
+  $("cpText").innerHTML=html;
+  $("cp").classList.add('show');
+  $("cpNext").onclick=()=>{$("cp").classList.remove('show');next();};
+}
+/* dilemma — ค่านิยม (แยกจาก RIASEC) */
+function runDilemma(next){
+  const nutIn = S.nut==='injured';
+  play([ b('ari','alert','สถานการณ์บีบ: พลังงานเหลือพอเปิดได้ "ระบบเดียว" ในอีกสองนาที','reactor',true),
+    b(nutIn?'nut':'ari',nutIn?'sad':'calm', nutIn?'พี่... ระบบช่วยชีวิตห้องพยาบาลที่หนูอยู่ ก็ใช้ไฟเส้นนั้น':'เลือกให้ดีนะ ฉันแค่ AI ฉันไม่ตัดสินใจแทนเธอ'),
+  ], ()=>{
+    $("dlgWrap").style.display='none';
+    const box=$("choices"); box.innerHTML=`<div class="ask">เธอเลือกเปิดอะไร?</div>`;
+    [['med','ระบบช่วยชีวิตในห้องพยาบาล'+(nutIn?' (ที่นัทอยู่)':''),'เธอให้น้ำหนักกับชีวิตตรงหน้าและคนในความดูแล'],
+     ['sig','เครื่องส่งสัญญาณขอความช่วยเหลือ','เธอให้น้ำหนักกับโอกาสรอดของทุกคนในระยะยาว']]
+    .sort(()=>Math.random()-.5).forEach(([k,label,note])=>{
+      const bt=document.createElement('button');bt.className='ch';bt.textContent=label;
+      bt.onclick=()=>{ pick(); valuesChoice={k,note}; box.classList.remove('show'); $("dlgWrap").style.display='block';
+        play([b('ari','calm','...บันทึกการตัดสินใจแล้ว ไม่มีคำตอบถูกหรอกนะ มีแต่คำตอบที่เป็นเธอ')], next); };
+      box.appendChild(bt);
+    });
+    box.classList.add('show');
+  });
+}
+
+/* ============================ SCORING ==================================== */
+function analyze(){
+  const ranked=DIMS.slice().sort((a,b)=>tally[b]-tally[a]),code=ranked.slice(0,3);
+  const vals=DIMS.map(d=>tally[d]),diff=Math.max(...vals)-Math.min(...vals);
+  const primary=code[0],nb=[DIMS[(HEX[primary]+1)%6],DIMS[(HEX[primary]+5)%6]];
+  const secondary=code.slice(1).filter(d=>!nb.includes(d)),doors=nb.filter(d=>!code.includes(d));
+  return {code,diff,primary,secondary,doors,flat:diff<=1};
+}
+function hexSVG(size){const c=size/2,R=size*.34,ang=i=>(-90+60*i)*Math.PI/180,v=(i,r)=>[c+r*Math.cos(ang(i)),c+r*Math.sin(ang(i))];
+  const mx=Math.max(1,...DIMS.map(d=>tally[d])),pts=DIMS.map((d,i)=>v(i,R*Math.max(.12,tally[d]/mx)));
+  let s=`<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">`;
+  [.34,.67,1].forEach(g=>s+=`<polygon points="${DIMS.map((_,i)=>v(i,R*g).join(",")).join(" ")}" fill="none" stroke="#ffffff14"/>`);
+  s+=`<polygon points="${pts.map(p=>p.join(",")).join(" ")}" fill="#46d8ff22" stroke="#46d8ff" stroke-width="2.5" stroke-linejoin="round"/>`;
+  DIMS.forEach((d,i)=>{const[px,py]=pts[i],[lx,ly]=v(i,R+18);s+=`<circle cx="${px}" cy="${py}" r="5" fill="${TYPE[d].c}"/>
+    <text x="${lx}" y="${ly+4}" text-anchor="middle" font-size="13" font-weight="700" fill="${TYPE[d].c}">${d}</text>`;});
+  return s+`</svg>`;}
+
+function ending(){
+  ding();
+  const story=[];
+  story.push(b('cap',null,'ยานกู้ภัยเทียบท่าแล้ว ทุกคนปลอดภัย เธอทำได้ดีมากคืนนี้','ending',false));
+  if(S.playerHurt) story.push(b('nut','relieved','แผลที่มือพี่คงเป็นรอย แต่มันคือรอยที่ช่วยพวกเราไว้นะ'));
+  if(S.nut==='injured') story.push(b('nut','relieved','หนูเจ็บนิดหน่อย แต่รอด เพราะมีพี่นี่แหละ'));
+  else story.push(b('nut','relieved','หนูยืนข้างพี่ได้จนจบเลย ขอบคุณนะพี่'));
+  if(S.commsRestored) story.push(b('ari','calm','การที่สัญญาณกลับมาได้ ช่วยให้ทุกอย่างดีขึ้นมากเลย'));
+  if(valuesChoice) story.push(b('ari','calm','การตัดสินใจครั้งสำคัญของเธอ: '+valuesChoice.note));
+  story.push(b('ari','calm','อยากรู้ไหมว่าคืนนี้บอกอะไรเกี่ยวกับตัวเธอบ้าง?'));
+  play(story, showResult);
+}
+
+function showResult(){
+  const r=analyze(); $("dlgWrap").style.display='none'; $("char").style.opacity=0;
+
+  // ── B2: คำอธิบายแต่ละแนว ──
+  const PROFILE={
+    R:{label:'สายลงมือทำ',
+       desc:'เรียนรู้ผ่านการลงมือทำจริง ชอบเห็นผลลัพธ์ที่จับต้องได้ เมื่อเจอปัญหาสัญชาตญาณแรกคือ "แก้เลย" ไม่รอ'},
+    I:{label:'สายวิเคราะห์',
+       desc:'ชอบเข้าใจว่า "ทำไม" ก่อนลงมือ สนุกกับการหาคำตอบ ข้อมูลคือสิ่งที่ทำให้รู้สึกมั่นใจ'},
+    A:{label:'สายสร้างสรรค์',
+       desc:'มองหาวิธีใหม่ที่ไม่เหมือนใคร ชอบแสดงออกและสร้างสิ่งที่คนอื่นยังไม่คิดถึง'},
+    S:{label:'สายดูแลคน',
+       desc:'ใส่ใจคนรอบข้าง สุขที่ได้ช่วยเหลือ มีความสามารถในการสร้างความสัมพันธ์ที่ดี'},
+    E:{label:'สายนำและโน้มน้าว',
+       desc:'กล้าตัดสินใจและขับเคลื่อนให้สิ่งต่าง ๆ เกิดขึ้นจริง ชอบมีเป้าหมายชัดและทำให้ทีมเดินหน้า'},
+    C:{label:'สายจัดระบบ',
+       desc:'ชอบความเป็นระเบียบและแม่นยำ ทำงานเชื่อถือได้ ไม่ชอบให้อะไรตกหล่น'},
+  };
+
+  // ── B3: กลุ่ม + คณะ + อาชีพ ──
+  const grpCard=(d,tag,dim)=>`
+    <div class="grp" style="${dim?'opacity:.6':''}">
+      <div class="gbar" style="background:${TYPE[d].c}"></div>
+      <div style="flex:1">
+        <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap">
+          <b>${GROUP[d].name}</b>
+          <span class="tag" style="background:${TYPE[d].c}22;color:${TYPE[d].c}">${tag}</span>
+        </div>
+        <div class="fac" style="margin-top:2px">${GROUP[d].fac}</div>
+        <div style="font-size:10.5px;color:#7fa8c9;margin-top:2px">อาชีพ: ${GROUP[d].jobs}</div>
+        <div style="font-size:11px;color:#b5d4ec;margin-top:3px">
+          <span style="color:${TYPE[d].c}">แข็ง:</span> ${GROUP[d].strength} &nbsp;·&nbsp;
+          <span style="color:${TYPE[d].c}">พัฒนา:</span> ${GROUP[d].grow}
+        </div>
+      </div>
+    </div>`;
+
+  // ── B4: เหตุผลการคำนวณ ──
+  const reasonHTML=`
+    <div id="reasonBox" style="display:none;margin-top:8px">
+      <div class="vnote">
+        <b style="color:var(--glow)">วิธีนับ</b><br>
+        เราดูว่าเธอ <em>ลงมือทำ</em> แบบไหนบ่อยสุดในแต่ละวิกฤต ไม่ใช่ถามว่า "คิดว่าตัวเองเป็นคนแบบไหน"<br><br>
+        จำนวนครั้งที่เลือกแต่ละแนว (จาก 12 จุด):<br>
+        ${DIMS.map(d=>`<span style="color:${TYPE[d].c}">${TYPE[d].th} ${tally[d]}</span>`).join(' · ')}<br><br>
+        ${r.flat?'เธอเลือกกระจายหลายแนว ยังไม่มีอันที่โดดเด่นชัด — <b>เรื่องนี้ปกติมากสำหรับวัยนี้</b> ยังสำรวจได้เรื่อย ๆ':'เรียงจากมากสุด 3 อันดับแรกคือแนวที่โน้มไป'}
+      </div>
+    </div>
+    <button class="btn alt" onclick="const b=document.getElementById('reasonBox');b.style.display=b.style.display==='none'?'block':'none';this.textContent=b.style.display==='none'?'ดูเหตุผลการคำนวณ ▼':'ซ่อน ▲'">ดูเหตุผลการคำนวณ ▼</button>`;
+
+  // ── B5: TCAS placeholder ──
+  const tcasFacs=[...new Set([r.primary,...r.secondary].flatMap(d=>GROUP[d].fac.split(' · ')))].slice(0,6);
+  const tcasHTML=`
+    <button class="btn alt" style="margin-top:6px" onclick="document.getElementById('tcasBox').style.display='block';this.style.display='none'">เช็กโอกาสติด (TCAS) ▶</button>
+    <div id="tcasBox" style="display:none" class="vnote">
+      <b style="color:var(--glow)">คณะที่น่าสำรวจ</b><br>
+      ${tcasFacs.map(f=>`• ${f}`).join('<br>')}
+      <br><br><span style="color:#7fa8c9;font-size:10px">// 🔌 จุดเชื่อมจริงกับ TCAS calculator — ใส่ GPAX / O-NET / A-Level ที่นี่</span>
+    </div>`;
+
+  // ── B1: code + hex ──
+  const topProfiles=r.code.slice(0,3).map(d=>`
+    <div style="padding:10px 0;border-top:1px solid #2a4668">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <span style="font-size:11px;padding:2px 8px;border-radius:20px;background:${TYPE[d].c}22;color:${TYPE[d].c}">${TYPE[d].th}</span>
+        <b style="color:${TYPE[d].c}">${PROFILE[d].label}</b>
+      </div>
+      <div style="font-size:13px;color:#d4e8f7;line-height:1.6">${PROFILE[d].desc}</div>
+    </div>`).join('');
+
+  $("card").innerHTML=`
+    <div style="text-align:center;padding-bottom:8px">
+      <div class="codeword">คืนนี้เธอโน้มเอียงไปทาง</div>
+      <div class="code">${r.code.map(d=>`<span style="color:${TYPE[d].c}">${d}</span>`).join('')}</div>
+      <div class="codeword">${r.code.map(d=>TYPE[d].th).join(' · ')}</div>
+      ${hexSVG(210)}
+    </div>
+    ${r.flat?`<div class="vnote">เธอเลือกกระจายหลายแนว ความสนใจยังไม่ตกผลึก — <b>ปกติมากสำหรับวัยนี้</b> ใช้เป็นจุดเริ่มต้นสำรวจตัวเองต่อไป</div>`:''}
+    <div style="margin-bottom:8px">${topProfiles}</div>
+    <div>${grpCard(r.primary,'เข้ากันสูง')}${r.secondary.map(d=>grpCard(d,'น่าสำรวจ')).join('')}${r.doors.map(d=>grpCard(d,'ประตูข้างเคียง',true)).join('')}</div>
+    ${valuesChoice?`<div class="vnote" style="margin-top:8px"><b style="color:var(--glow)">ค่านิยมที่เผย</b> <span style="font-size:11px;color:#7fa8c9">(วัดแยกจากความสนใจ)</span><br>${valuesChoice.note}</div>`:''}
+    ${reasonHTML}
+    ${tcasHTML}
+    <div class="fnote" style="margin-top:10px">
+      นี่คือ "แนวที่เธอโน้มไป" จากสิ่งที่เลือกทำในเรื่อง ไม่ใช่คำตัดสินว่าเธอ "เป็น" คนแบบไหน ·
+      ยังไม่รวมความถนัด คะแนนสอบ หรือปัจจัยส่วนตัวอื่น ·
+      เล่นซ้ำเพื่อดูว่าถ้าเลือกต่างกัน ผลจะเปลี่ยนไหม
+    </div>
+    <button class="btn" id="again" style="margin-top:10px">เล่นใหม่</button>`;
+
+  $("result").classList.add('show');
+  // 🔌 จุดต่อระบบเก็บข้อมูลกลางในอนาคต (ส่ง RESULT ไป backend)
+  const RESULT={game:'space',ts:Date.now(),tally:{...tally},code:r.code,values:valuesChoice,log:behaviorLog};
+  console.log('RESULT',RESULT);
+  $("again").onclick=()=>location.reload();
+}
+
+// ── Parallax — ฉากเลื่อนเบา ๆ ตาม mouse / deviceorientation ─────────────────
+// ใช้ transform บน #bgArt (div) แยกจาก Ken Burns ที่อยู่บน img ข้างใน
+// Glitch animation (CSS) จะ override inline style ชั่วคราว แล้ว parallax smooth resume เอง
+;(()=>{
+  let tx=0,ty=0,cx=0,cy=0;
+  const MAX=3, L=.08;
+  const lerp=(a,b,t)=>a+(b-a)*t;
+  (function loop(){
+    if(reducedMotion){tx=ty=cx=cy=0;}
+    cx=lerp(cx,tx,L); cy=lerp(cy,ty,L);
+    const g=$('bgArt');
+    if(g) g.style.transform = reducedMotion ? '' : `translate(${cx.toFixed(2)}px,${cy.toFixed(2)}px)`;
+    requestAnimationFrame(loop);
+  })();
+  window.addEventListener('mousemove',e=>{
+    if(reducedMotion) return;
+    tx=(e.clientX/window.innerWidth -.5)*MAX*2;
+    ty=(e.clientY/window.innerHeight-.5)*MAX*2;
+  },{passive:true});
+  window.addEventListener('deviceorientation',e=>{
+    if(reducedMotion) return;
+    tx=Math.min(MAX,Math.max(-MAX,(e.gamma||0)/45*MAX));
+    ty=Math.min(MAX,Math.max(-MAX,((e.beta||0)-45)/45*MAX));
+  },{passive:true});
+})();
+</script>
+</body>
+</html>
