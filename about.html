@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ธารา 9 — วัดอะไร? หลักการ</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#04060d;--ink:#eaf6ff;--glow:#46d8ff;--dim:#2a4668;--card:#0a1220;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans Thai',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;}
+.stars{position:fixed;inset:0;pointer-events:none;z-index:0;}
+.stars::before{content:'';position:absolute;inset:0;
+  background-image:radial-gradient(1px 1px at 12% 25%,#fff8 0,transparent 100%),
+    radial-gradient(1px 1px at 40% 70%,#fff6 0,transparent 100%),
+    radial-gradient(1.5px 1.5px at 65% 15%,#fff9 0,transparent 100%),
+    radial-gradient(1px 1px at 80% 55%,#fff7 0,transparent 100%),
+    radial-gradient(1px 1px at 28% 88%,#fff5 0,transparent 100%),
+    radial-gradient(1px 1px at 92% 38%,#fff8 0,transparent 100%),
+    radial-gradient(1px 1px at 55% 82%,#fff6 0,transparent 100%);}
+.wrap{position:relative;z-index:1;max-width:720px;margin:0 auto;padding:28px 16px 60px;}
+.back{display:inline-flex;align-items:center;gap:6px;color:#7fa8c9;font-size:14px;text-decoration:none;margin-bottom:28px;
+  padding:8px 14px;border-radius:8px;border:1px solid var(--dim);transition:.15s;}
+.back:hover{background:rgba(70,216,255,.08);color:var(--glow);}
+h1{font-family:'Orbitron',sans-serif;font-size:clamp(22px,5vw,34px);font-weight:900;
+  color:var(--glow);text-shadow:0 0 24px rgba(70,216,255,.4);margin-bottom:8px;}
+.intro{font-size:15px;color:#94b8d4;line-height:1.8;margin-bottom:36px;}
+
+.section{margin-bottom:32px;}
+.section-tag{display:inline-block;font-size:11px;padding:3px 12px;border-radius:20px;
+  background:rgba(70,216,255,.12);color:var(--glow);border:1px solid rgba(70,216,255,.3);
+  margin-bottom:10px;font-weight:700;letter-spacing:.5px;}
+h2{font-size:18px;font-weight:700;color:#d4e8f7;margin-bottom:10px;}
+p{font-size:14px;color:#94b8d4;line-height:1.85;margin-bottom:10px;}
+p:last-child{margin-bottom:0;}
+strong{color:#d4e8f7;font-weight:600;}
+
+.riasec-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin:16px 0;}
+.riasec-card{background:var(--card);border:1px solid var(--dim);border-radius:12px;padding:14px;}
+.riasec-letter{font-family:'Orbitron',sans-serif;font-size:22px;font-weight:900;margin-bottom:4px;}
+.riasec-name{font-size:13px;font-weight:700;color:#d4e8f7;margin-bottom:4px;}
+.riasec-desc{font-size:12px;color:#7fa8c9;line-height:1.6;}
+
+.highlight-box{background:rgba(70,216,255,.06);border:1px solid rgba(70,216,255,.2);
+  border-radius:12px;padding:16px 18px;margin:16px 0;}
+.highlight-box p{color:#b5d4ec;}
+.highlight-box strong{color:var(--glow);}
+
+.vs-block{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0;}
+.vs-item{background:var(--card);border-radius:12px;padding:14px 16px;border:1px solid var(--dim);}
+.vs-label{font-size:11px;font-weight:700;margin-bottom:8px;letter-spacing:.5px;}
+.vs-label.bad{color:#ff5d70;}
+.vs-label.good{color:var(--glow);}
+.vs-text{font-size:13px;color:#7fa8c9;line-height:1.7;}
+
+.read-guide{display:flex;flex-direction:column;gap:10px;margin:16px 0;}
+.read-step{display:flex;gap:12px;align-items:flex-start;}
+.step-num{width:28px;height:28px;border-radius:50%;background:rgba(70,216,255,.15);
+  border:1px solid rgba(70,216,255,.3);display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;color:var(--glow);flex-shrink:0;margin-top:1px;}
+.step-text{font-size:13px;color:#94b8d4;line-height:1.7;padding-top:3px;}
+.step-text strong{color:#d4e8f7;}
+
+.honest-block{background:rgba(255,93,112,.05);border:1px solid rgba(255,93,112,.2);border-radius:12px;padding:16px 18px;margin:16px 0;}
+.honest-block p{color:#e8b8c4;}
+.honest-block strong{color:#ff8fa0;}
+
+.theory-block{background:rgba(70,216,255,.04);border-left:3px solid var(--glow);padding:14px 16px;border-radius:0 10px 10px 0;margin:16px 0;}
+.theory-block p{color:#7fa8c9;font-size:13px;}
+.theory-block strong{color:#d4e8f7;}
+
+.divider{border:none;border-top:1px solid var(--dim);margin:32px 0;}
+
+.back-bottom{display:inline-flex;align-items:center;gap:6px;color:var(--glow);font-size:15px;
+  font-weight:700;text-decoration:none;padding:12px 24px;border-radius:10px;
+  border:1px solid rgba(70,216,255,.3);background:rgba(70,216,255,.08);transition:.15s;}
+.back-bottom:hover{background:rgba(70,216,255,.18);}
+
+@media(max-width:480px){.vs-block{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="stars"></div>
+<div class="wrap">
+
+  <a href="index.html" class="back">← กลับหน้าแรก</a>
+
+  <h1>เกมนี้วัดอะไร?</h1>
+  <p class="intro">หน้านี้อธิบายว่าชุดเกมธารา 9 วัดอะไร ใช้กรอบแนวคิดอะไร และจะอ่านผลยังไงให้ได้ประโยชน์จริง — อ่านหรือข้ามก็ได้ แต่ถ้าอ่านแล้วจะเห็นว่าผลที่ได้มีความหมายยังไง</p>
+
+  <!-- ─────── 1. วัดอะไร ─────── -->
+  <section class="section">
+    <span class="section-tag">วัดอะไร</span>
+    <h2>ความสนใจอาชีพ 6 แบบ</h2>
+    <p>เกมนี้วัด <strong>ความสนใจด้านอาชีพ</strong> — ไม่ใช่ความฉลาด ไม่ใช่ความถนัด แต่เป็น "แนวที่เธอโน้มไปตามธรรมชาติ" เมื่อเจอสถานการณ์ต่าง ๆ</p>
+    <p>ความสนใจแบ่งเป็น 6 แนวหลักตามทฤษฎีของจอห์น ฮอลแลนด์ เราเรียกย่อว่า RIASEC ทุกคนมีทั้ง 6 แนวอยู่ในตัว แต่แต่ละคนจะโน้มเอียงไปแนวไหนมากน้อยต่างกัน</p>
+    <div class="riasec-grid">
+      <div class="riasec-card"><div class="riasec-letter" style="color:#ff7a4d">R</div><div class="riasec-name">ลงมือทำ</div><div class="riasec-desc">ชอบสร้าง ซ่อม ลงมือจัดการ เห็นผลจับต้องได้</div></div>
+      <div class="riasec-card"><div class="riasec-letter" style="color:#36c9c9">I</div><div class="riasec-name">วิเคราะห์</div><div class="riasec-desc">ชอบค้นหา ตั้งคำถาม หาคำตอบจากข้อมูล</div></div>
+      <div class="riasec-card"><div class="riasec-letter" style="color:#c46bd6">A</div><div class="riasec-name">สร้างสรรค์</div><div class="riasec-desc">ชอบคิดใหม่ แสดงออก ทำสิ่งที่ไม่เหมือนใคร</div></div>
+      <div class="riasec-card"><div class="riasec-letter" style="color:#ffc24d">S</div><div class="riasec-name">ดูแลคน</div><div class="riasec-desc">ชอบช่วยเหลือ รับฟัง สร้างความสัมพันธ์ที่ดี</div></div>
+      <div class="riasec-card"><div class="riasec-letter" style="color:#ff5d70">E</div><div class="riasec-name">นำ/โน้มน้าว</div><div class="riasec-desc">ชอบตัดสินใจ นำทีม ขับเคลื่อนให้เกิดผล</div></div>
+      <div class="riasec-card"><div class="riasec-letter" style="color:#5d8bff">C</div><div class="riasec-name">จัดระบบ</div><div class="riasec-desc">ชอบวางแผน จัดระเบียบ ทำงานแม่นยำครบถ้วน</div></div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ─────── 2. ทำไมเป็นเกม ─────── -->
+  <section class="section">
+    <span class="section-tag">ทำไมเป็นเกม</span>
+    <h2>วัดจาก "สิ่งที่เลือกทำ" ตรงกว่าวัดจาก "คิดว่าตัวเองเป็นคนแบบไหน"</h2>
+    <div class="vs-block">
+      <div class="vs-item">
+        <div class="vs-label bad">✕ แบบสอบถามทั่วไป</div>
+        <div class="vs-text">ถามว่า "คุณชอบทำงานกับคนไหม?" — คนตอบจากภาพที่อยากเป็น ไม่ใช่ภาพที่เป็นจริง บางครั้งตอบตามสิ่งที่ "ควร" ชอบ ไม่ใช่ชอบจริง</div>
+      </div>
+      <div class="vs-item">
+        <div class="vs-label good">✓ เกมธารา 9</div>
+        <div class="vs-text">ให้เผชิญสถานการณ์แล้วเลือกว่าจะทำอะไร — ไม่มีคำตอบที่ "ถูก" ทุกตัวเลือกสมจริงพอ ๆ กัน เลือกตามสัญชาตญาณได้เลย</div>
+      </div>
+    </div>
+    <p>เมื่อเจอสถานการณ์กดดัน คนมักเลือกตามแนวที่ถนัดตามธรรมชาติ — นั่นคือข้อมูลที่ตรงกว่าการตอบแบบสอบถามที่ "คิด" คำตอบ</p>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ─────── 3. ทำไมหลายเกม ─────── -->
+  <section class="section">
+    <span class="section-tag">ทำไมต้องเล่นหลายเกม</span>
+    <h2>แนวจริงโผล่ซ้ำข้ามบริบท</h2>
+    <p>สถานการณ์ที่ต่างกัน (ยานอวกาศ / ร้านกาแฟ / เกาะ) อาจดึงแนวที่ต่างกันออกมาบ้าง — แนวที่โน้มไปในสถานการณ์กดดันอาจต่างจากสถานการณ์ประจำวัน</p>
+    <div class="highlight-box">
+      <p><strong>แนวที่โผล่ซ้ำทุกเกม = แนวที่ใช่จริง</strong> เพราะมันนิ่งข้ามบริบทที่ต่างกัน</p>
+      <p>แนวที่โผล่แค่เกมเดียวอาจเป็นผลจากธีมนั้นโดยเฉพาะ ไม่ใช่แนวที่ลึกจริง ๆ</p>
+    </div>
+    <p>เล่นครบ 3 เกมแล้วดูว่าแนวไหน "นิ่ง" ทุกเกม — แนวนั้นน่าเชื่อถือที่สุด</p>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ─────── 4. อ่านผลยังไง ─────── -->
+  <section class="section">
+    <span class="section-tag">อ่านผลยังไง</span>
+    <h2>ผลคือ "แนวที่น่าสำรวจ" ไม่ใช่คำตัดสิน</h2>
+    <div class="read-guide">
+      <div class="read-step">
+        <div class="step-num">1</div>
+        <div class="step-text"><strong>ดูรหัส 3 ตัว (เช่น RIA, SEC, EIS)</strong> — เรียงจากมากสุด คือแนวที่เธอโน้มไปมากสุดในการเล่นรอบนั้น ไม่ใช่ตัวตนที่แท้จริงหรือชะตากรรมตายตัว</div>
+      </div>
+      <div class="read-step">
+        <div class="step-num">2</div>
+        <div class="step-text"><strong>ดู hexagon</strong> — รูปร่างบอกว่าความสนใจกระจุกตัวหรือกระจาย ถ้ากระจายหลายด้านคือปกติสำหรับวัยนี้ ยังอยู่ระหว่างสำรวจตัวเอง</div>
+      </div>
+      <div class="read-step">
+        <div class="step-num">3</div>
+        <div class="step-text"><strong>เปรียบเทียบข้ามเกม</strong> — แนวที่โผล่ซ้ำทุกเกมมั่นใจได้มากกว่า แนวที่แกว่งข้ามเกมบอกว่ายังมีพื้นที่สำรวจ</div>
+      </div>
+      <div class="read-step">
+        <div class="step-num">4</div>
+        <div class="step-text"><strong>ใช้เป็นจุดเริ่มต้น</strong> — ลองค้นคณะหรืออาชีพในแนวที่โน้มไป อ่านว่าคนในสายนั้นทำอะไรจริง ๆ แล้วดูว่าสนใจจริงไหม</div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ─────── 5. ข้อมูลที่ได้ ─────── -->
+  <section class="section">
+    <span class="section-tag">ข้อมูลที่ได้ออกมาเป็นยังไง</span>
+    <h2>แกนที่นิ่ง vs แกนที่แกว่ง</h2>
+    <p>เมื่อเล่นครบ 3 เกม ระบบจะแยก:</p>
+    <div class="read-guide" style="margin-top:12px">
+      <div class="read-step">
+        <div class="step-num" style="background:rgba(70,216,255,.15);color:#46d8ff;border-color:#46d8ff44">นิ่ง</div>
+        <div class="step-text"><strong>แนวที่นิ่งทุกเกม</strong> — ติดอันดับต้นทุกบริบท หมายความว่าแนวนี้มาจากตัวเธอจริง ๆ ไม่ใช่แค่บรรยากาศเกม</div>
+      </div>
+      <div class="read-step">
+        <div class="step-num" style="background:rgba(255,193,77,.1);color:#ffc24d;border-color:#ffc24d44">แกว่ง</div>
+        <div class="step-text"><strong>แนวที่แกว่งข้ามเกม</strong> — โผล่บางเกมไม่โผล่บางเกม อาจเป็นว่าความสนใจด้านนี้ขึ้นอยู่กับบริบท หรือยังอยู่ระหว่างพัฒนา ลองสำรวจเพิ่มได้</div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ─────── 6. ความซื่อสัตย์ ─────── -->
+  <section class="section">
+    <span class="section-tag">ความซื่อสัตย์</span>
+    <h2>สิ่งที่เกมนี้ทำได้และไม่ได้</h2>
+    <div class="honest-block">
+      <p><strong>เกมนี้ทำได้:</strong> ช่วยจุดประกายการสำรวจตัวเอง บอกว่าตอนนี้โน้มไปทางไหน เป็นจุดเริ่มต้นสำหรับการคุยกับคนที่ไว้วางใจหรือค้นหาข้อมูลเพิ่ม</p>
+      <p><strong>เกมนี้ทำไม่ได้:</strong> ฟันธงอนาคต บอกว่าเธอ "เหมาะ" กับอาชีพไหนแน่นอน หรือทดแทนการใช้เวลาลองจริง ๆ ผลยังไม่รวมความถนัด คะแนนสอบ หรือปัจจัยส่วนตัวอื่น</p>
+      <p>ถ้าผลออกมาไม่ตรงกับที่รู้สึก — นั่นก็เป็นข้อมูลที่มีประโยชน์เหมือนกัน ลองเล่นซ้ำหรือเล่นเกมอื่นในชุดเพื่อดูว่าผลสอดคล้องกันไหม</p>
+    </div>
+    <p style="color:#7fa8c9;font-size:13px">กำลังพัฒนาความแม่นต่อเนื่อง — ยิ่งมีข้อมูลจากผู้เล่นหลายคนมากขึ้น ระบบจะสามารถระบุแนวได้ชัดขึ้น</p>
+  </section>
+
+  <hr class="divider">
+
+  <!-- ─────── 7. ทฤษฎีฮอลแลนด์ ─────── -->
+  <section class="section">
+    <span class="section-tag">ที่มา</span>
+    <h2>ทฤษฎีของจอห์น ฮอลแลนด์</h2>
+    <div class="theory-block">
+      <p><strong>จอห์น แอล. ฮอลแลนด์ (John L. Holland)</strong> นักจิตวิทยาอาชีพชาวอเมริกัน เสนอทฤษฎีในปี ค.ศ. 1959 ว่าคนมีบุคลิกด้านอาชีพ 6 แบบ (RIASEC) และมีแนวโน้มจะพอใจและทำงานได้ดีในสภาพแวดล้อมที่สอดคล้องกับแนวของตัวเอง</p>
+      <p>ทฤษฎีนี้เป็นหนึ่งในกรอบที่มีการศึกษาวิจัยรองรับมากที่สุดในด้านจิตวิทยาอาชีพ และยังใช้กันในระบบแนะแนวอาชีพทั่วโลก</p>
+      <p>เกมธารา 9 ใช้กรอบ RIASEC เป็นโครงสร้างหลัก แต่ปรับวิธีการวัดจาก "แบบสอบถาม" เป็น "การเลือกในสถานการณ์จำลอง" เพื่อลดอคติจากการตอบตามภาพที่อยากเป็น</p>
+    </div>
+  </section>
+
+  <hr class="divider">
+
+  <a href="index.html" class="back-bottom">← กลับไปเล่นเกม</a>
+
+</div>
+</body>
+</html>
