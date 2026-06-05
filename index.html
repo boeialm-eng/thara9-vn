@@ -191,15 +191,21 @@ const GROUP={
 /* ── Game meta ── */
 const GAMES=[
   {key:'space', title:'ยานอวกาศวิกฤต', file:'thara9-vn.html',
-   art:'assets/key_title.png', artFallback:'#0a1828',
+   art:'assets/key_title.png',
+   artAlt:'assets/bg_bridge.png',
+   artBg:'linear-gradient(160deg,#0a1828 0%,#040c18 100%)',
    accentColor:'#46d8ff', shadowColor:'rgba(70,216,255,.3)',
    ctx:'ยานอวกาศขัดข้องกลางจักรวาล ทุกการตัดสินใจอาจเปลี่ยนชะตาของลูกเรือ'},
   {key:'cafe', title:'ร้านกาแฟวันวุ่น', file:'cafe-game.html',
-   art:'assets/interlude_2.png', artFallback:'#140a02',
+   art:'assets/cafe_key_title.png',
+   artAlt:'assets/cafe_event_closing.png',
+   artBg:'linear-gradient(160deg,#2a1208 0%,#180c04 100%)',
    accentColor:'#ff9d4d', shadowColor:'rgba(255,157,77,.3)',
    ctx:'หนึ่งวันวุ่นวายที่ร้านกาแฟ ทุกสถานการณ์สะท้อนว่าเธอรับมือกับคนและงานแบบไหน'},
   {key:'island', title:'เกาะ: เอาตัวรอด', file:'island-game.html',
-   art:'assets/isl_key_title.png', artFallback:'#020a06',
+   art:'assets/isl_key_title.png',
+   artAlt:'assets/isl_bg_beach.png',
+   artBg:'linear-gradient(160deg,#021208 0%,#020a06 100%)',
    accentColor:'#40e8b0', shadowColor:'rgba(64,232,176,.3)',
    ctx:'ติดเกาะร้างหลังเรือล่ม 12 สถานการณ์ เลือกทำอะไรบอกได้ว่าเธอคิดและรู้สึกแบบไหน'},
 ];
@@ -243,6 +249,18 @@ function readResults(){
       if(r&&r.tally)return r;return null;}
     catch{return null;}});}
 
+/* ── fallback chain: primary → artAlt → solid gradient ── */
+function artError(img){
+  if(!img._tried){
+    img._tried=true;
+    const alt=img.dataset.alt;
+    if(alt){img.src=alt;return;}
+  }
+  img.style.display='none';
+  const art=img.closest('.card-art');
+  if(art)art.style.background=img.dataset.bg||'#111';
+}
+
 /* ── Render game cards ── */
 function renderCards(results){
   const container=document.getElementById('cards');
@@ -257,7 +275,10 @@ function renderCards(results){
     const prevCode=played?`<div class="game-src">ผลล่าสุด: <b style="color:${g.accentColor}">${r.code.map(d=>`<span style="color:${TYPE[d].c}">${d}</span>`).join('')}</b></div>`:'';
     return`<div class="card" style="border-color:${g.accentColor}30">
       <div class="card-art">
-        <img src="${g.art}" alt="" onerror="this.style.display='none';this.parentNode.style.background='${g.artFallback}'">
+        <img src="${g.art}" alt=""
+          data-alt="${g.artAlt||''}"
+          data-bg="${g.artBg||'#111'}"
+          onerror="artError(this)">
         ${badge}
       </div>
       <div class="card-body">
